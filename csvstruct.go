@@ -21,7 +21,7 @@ func NewDecoder(r io.Reader) Decoder {
 	}
 }
 
-func (d decoder) DecodeNext(in interface{}) error {
+func (d decoder) DecodeNext(v interface{}) error {
 	if len(d.hm) == 0 {
 		// First run; read header row
 		header, err := d.r.Read()
@@ -31,22 +31,22 @@ func (d decoder) DecodeNext(in interface{}) error {
 		d.hm = reverse(header)
 	}
 
-	t := reflect.TypeOf(in)
+	t := reflect.TypeOf(v)
 
 	line, err := d.r.Read()
 	if err != nil {
 		return err
 	}
 
-	out := reflect.ValueOf(in)
+	out := reflect.ValueOf(v)
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		n := f.Name
 		// TODO: f.Tag.Get("csv")
 		val := line[d.hm[n]]
-		v := reflect.ValueOf(&val)
-		v.Elem().SetString(line[d.hm[n]])
-		out.Elem().Set(v)
+		vval := reflect.ValueOf(&val)
+		vval.Elem().SetString(line[d.hm[n]])
+		out.Elem().Set(vval)
 	}
 	return nil
 }
