@@ -2,6 +2,7 @@ package csvstruct
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -29,11 +30,17 @@ func (e *encoder) EncodeNext(v interface{}) error {
 	}
 
 	t := reflect.ValueOf(v).Type()
+	if t.Kind() != reflect.Struct {
+		return errors.New("must be struct")
+	}
 	if e.hm == nil {
 		e.hm = make(map[string]int)
 		headers := []string{}
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
+			if f.Anonymous {
+				continue
+			}
 			if f.PkgPath != "" { // Filter unexported fields
 				continue
 			}
@@ -53,7 +60,7 @@ func (e *encoder) EncodeNext(v interface{}) error {
 	}
 
 	rv := reflect.ValueOf(v)
-	row := []string{}
+	row := make([]string, len(e.hm))
 	add := false // Whether there has been a row to write in this call.
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
@@ -69,11 +76,6 @@ func (e *encoder) EncodeNext(v interface{}) error {
 		if !ok {
 			// Unmapped header value
 			continue
-		}
-
-		// Increase the row size to fit the new row.
-		for fi >= len(row) {
-			row = append(row, "")
 		}
 
 		add = true

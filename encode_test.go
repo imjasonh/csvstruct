@@ -64,13 +64,13 @@ a
 }
 
 func TestEncode_Tags(t *testing.T) {
-	type row struct {
+	r := struct {
 		Foo     string `csv:"renamed_foo"`
 		Bar     string
 		Ignored string `csv:"-"`
-	}
+	}{"a", "b", "c"}
 	var buf bytes.Buffer
-	if err := NewEncoder(&buf).EncodeNext(row{"a", "b", "c"}); err != nil {
+	if err := NewEncoder(&buf).EncodeNext(r); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	exp := `renamed_foo,Bar
@@ -104,21 +104,22 @@ func TestEncode_NonStrings(t *testing.T) {
 }
 
 func TestEncodeDifferent(t *testing.T) {
-	type row1 struct {
+	row1 := struct {
 		Foo, Bar string
-	}
-	type row2 struct {
+	}{"foo", "bar"}
+
+	row2 := struct {
 		Baz string
-	}
-	type row3 struct {
+	}{"baz"}
+	row3 := struct {
 		Bar, Baz string
-	}
+	}{"bar", "baz"}
 	var buf bytes.Buffer
 	e := NewEncoder(&buf)
 	// Headers are taken from the fields in the first call to EncodeNext.
 	// Further calls add whatever fields they can, and if no fields are
 	// shared then the row is not written.
-	for _, r := range []interface{}{row1{"foo", "bar"}, row2{"baz"}, row3{"bar", "baz"}} {
+	for _, r := range []interface{}{row1, row2, row3} {
 		if err := e.EncodeNext(r); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
