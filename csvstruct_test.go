@@ -75,3 +75,21 @@ a,b`))
 		t.Errorf("unexpected result, got %v, want %v", r, exp)
 	}
 }
+
+func TestDecode_Tags(t *testing.T) {
+	type row struct {
+		Foo     string `csv:"renamed_foo"`
+		Bar     string
+		Ignored string `csv:"-"`
+	}
+	d := NewDecoder(strings.NewReader(`renamed_foo,Bar,Ignored
+a,b,c`))
+	var r row
+	if err := d.DecodeNext(&r); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	exp := row{"a", "b", ""}
+	if !reflect.DeepEqual(r, exp) {
+		t.Errorf("unexpected results, got %v, want %v", r, exp)
+	}
+}

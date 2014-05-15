@@ -1,4 +1,3 @@
-// TODO: struct tags
 // TODO: support DecodeNext(nil) to skip a line
 // TODO: NewEncoder/EncodeNext -- header will be fields in first item...
 // TODO: Encode/Decode map[string]string
@@ -56,14 +55,19 @@ func (d *decoder) DecodeNext(v interface{}) error {
 			continue
 		}
 		n := f.Name
-		// TODO: f.Tag.Get("csv") and handle struct tags
+		if f.Tag.Get("csv") != "" {
+			n = f.Tag.Get("csv")
+			if n == "-" {
+				continue
+			}
+		}
 		idx, ok := d.hm[n]
 		if !ok {
 			// Unmapped header value
 			continue
 		}
 		strv := line[idx]
-		vf := rv.FieldByName(n)
+		vf := rv.FieldByName(f.Name)
 		if vf.CanSet() {
 			vf.SetString(strv)
 		}
