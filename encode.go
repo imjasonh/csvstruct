@@ -13,19 +13,19 @@ type Encoder interface {
 }
 
 type encoder struct {
-	w              *csv.Writer
-	headersWritten bool
+	w  csv.Writer
+	hw bool
 }
 
 // NewEncoder returns an encoder that writes to w.
 func NewEncoder(w io.Writer) Encoder {
-	return &encoder{w: csv.NewWriter(w)}
+	return &encoder{w: *csv.NewWriter(w)}
 }
 
 // EncodeNext writes the CSV encoding of v to the stream.
 func (e *encoder) EncodeNext(v interface{}) error {
 	t := reflect.ValueOf(v).Type()
-	if !e.headersWritten {
+	if !e.hw {
 		headers := make([]string, t.NumField())
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
@@ -41,7 +41,7 @@ func (e *encoder) EncodeNext(v interface{}) error {
 		if err := e.w.Write(headers); err != nil {
 			return err
 		}
-		e.headersWritten = true
+		e.hw = true
 	}
 
 	rv := reflect.ValueOf(v)
@@ -67,5 +67,9 @@ func (e *encoder) EncodeNext(v interface{}) error {
 			return fmt.Errorf("can't decode type %v", f.Type)
 		}
 	}
-	return e.w.Write(row)
+	if err := e.w.Write(row); err != nil {
+		return err
+	}
+	e.w.Flush()
+	return nil
 }

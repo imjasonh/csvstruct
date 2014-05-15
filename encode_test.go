@@ -6,7 +6,6 @@ import (
 )
 
 func TestEncodeNext(t *testing.T) {
-	t.Skip("failing for some reason... TODO: investigate")
 	type row struct {
 		Foo, Bar, Baz string
 	}
@@ -18,7 +17,8 @@ func TestEncodeNext(t *testing.T) {
 		[]row{{"a", "b", "c"}, {"d", "e", "f"}},
 		`Foo,Bar,Baz
 a,b,c
-d,e,f`,
+d,e,f
+`,
 	}} {
 		var buf bytes.Buffer
 		e := NewEncoder(&buf)
@@ -27,7 +27,7 @@ d,e,f`,
 				t.Errorf("unexpected error: %v", err)
 			}
 		}
-		got := string(buf.Bytes())
+		got := buf.String()
 		if got != c.exp {
 			t.Errorf("unexpected result, got %s, want %s", got, c.exp)
 		}
