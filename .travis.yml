@@ -3,3 +3,6 @@ language: go
 go:
  - 1.2
  - tip
+
+notifications:
+  email: false
