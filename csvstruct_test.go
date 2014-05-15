@@ -18,35 +18,37 @@ func TestDecode(t *testing.T) {
 	}{{
 		data: `Foo,Bar,Baz
 a,b,c
-d,e,f`,
+d,e,f
+`,
 		out: []row{{"a", "b", "c"}, {"d", "e", "f"}},
 	}, {
 		// Rows that only have partial data are only partially filled.
 		data: `Foo,Bar,Baz
 a,,
-,b,`,
+,b,
+`,
 		out: []row{{"a", "", ""}, {"", "b", ""}},
 	}, {
 		// Rows that don't define all the columns are partially filled.
 		data: `Foo,Bar
 a,
-,b`,
+,b
+`,
 		out: []row{{"a", "", ""}, {"", "b", ""}},
-		/*}, {
-				// Entirely disjoint columns produce empty structs.
-				data: `Qux
-		d`,
-				out: []row{{"", "", ""}}, */
+	}, {
+		// Entirely disjoint columns produce empty structs.
+		data: `Qux
+d
+`,
+		out: []row{{}},
 	}} {
 		d := NewDecoder(strings.NewReader(c.data))
 		rows := []row{}
 		var row row
 		for {
-			err := d.DecodeNext(&row)
-			if err == io.EOF {
+			if err := d.DecodeNext(&row); err == io.EOF {
 				break
-			}
-			if err != nil {
+			} else if err != nil {
 				t.Errorf("%v", err)
 				break
 			}

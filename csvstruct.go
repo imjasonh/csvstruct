@@ -1,3 +1,8 @@
+// TODO: struct tags
+// TODO: NewEncoder/EncodeNext -- header will be fields in first item...
+// TODO: Encode/Decode map[string]string
+// TODO: Encode/Decode non-string values?
+
 package csvstruct
 
 import (
@@ -5,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"reflect"
 )
 
@@ -19,45 +23,57 @@ type decoder struct {
 }
 
 func NewDecoder(r io.Reader) Decoder {
-	return decoder{
+	return &decoder{
 		r: *csv.NewReader(r),
 	}
 }
 
-func (d decoder) DecodeNext(v interface{}) error {
-	if len(d.hm) == 0 {
-		// First run; read header row
-		header, err := d.r.Read()
-		if err != nil {
-			return fmt.Errorf("error reading headers: %v", err)
-		}
-		d.hm = reverse(header)
-	}
-
-	line, err := d.r.Read()
-	if err != nil {
-		return err
-	}
-
+func (d *decoder) DecodeNext(v interface{}) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return errors.New("must be pointer")
 	}
+	rv = rv.Elem()
 
-	t := reflect.TypeOf(rv.Elem())
-	out := reflect.New(t).Elem()
+	t := reflect.ValueOf(v).Elem().Type()
+	if t.Kind() != reflect.Struct {
+		return errors.New("must be pointer to struct")
+	}
+
+	line, err := d.read()
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		if f.Anonymous {
 			continue
 		}
 		n := f.Name
-		strv := line[d.hm[n]]
-		log.Printf("%s = %s\n", n, strv)
-		out.FieldByName(n).SetString(strv)
+		// TODO: f.Tag.Get("csv") and handle struct tags
+		idx, ok := d.hm[n]
+		if !ok {
+			// Unmapped header value
+			continue
+		}
+		strv := line[idx]
+		rv.FieldByName(n).SetString(strv)
 	}
-	v = out
 	return nil
+}
+
+func (d *decoder) read() ([]string, error) {
+	if d.hm == nil {
+		// First run; read header row
+		header, err := d.r.Read()
+		if err != nil {
+			return nil, fmt.Errorf("error reading headers: %v", err)
+		}
+		d.hm = reverse(header)
+	}
+	// Read data row into []string
+	return d.r.Read()
 }
 
 func reverse(in []string) map[string]int {
@@ -67,7 +83,3 @@ func reverse(in []string) map[string]int {
 	}
 	return m
 }
-
-// TODO: NewEncoder/EncodeNext -- header will be fields in first item...
-// TODO: Encode/Decode map[string]interface{} ?
-// TODO: Encode/Decode non-string values?
