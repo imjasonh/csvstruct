@@ -2,6 +2,7 @@ package csvstruct
 
 import (
 	"io"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -33,8 +34,8 @@ ignored`,
 		out: []row{{"", "", ""}},
 	}} {
 		d := NewDecoder(strings.NewReader(c.data))
+		rows := []row{}
 		var row row
-		i := 0
 		for {
 			err := d.DecodeNext(&row)
 			if err == io.EOF {
@@ -44,10 +45,10 @@ ignored`,
 				t.Errorf("%v", err)
 				break
 			}
-			if c.out[i] != row {
-				t.Errorf("unexpected item %d, got %+v, want %+v", i, row, c.out[i])
-			}
-			i++
+			rows = append(rows, row)
+		}
+		if reflect.DeepEqual(rows, c.out) {
+			t.Errorf("unexpected result, got %v, want %v", rows, c.out)
 		}
 	}
 }

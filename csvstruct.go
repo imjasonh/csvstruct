@@ -58,3 +58,7 @@ func reverse(in []string) map[string]int {
 	}
 	return m
 }
+
+// TODO: NewEncoder/EncodeNext -- header will be fields in first item...
+// TODO: Encode/Decode map[string]interface{} ?
+// TODO: Encode/Decode non-string values?
