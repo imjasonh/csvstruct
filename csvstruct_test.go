@@ -1,6 +1,7 @@
 package csvstruct
 
 import (
+	"fmt"
 	"io"
 	"reflect"
 	"strings"
@@ -125,4 +126,24 @@ a,b`)).DecodeNext(&r); err != nil {
 	if r.S != "a" || r.SP == nil || *r.SP != "b" {
 		t.Errorf("unexpected results, got %v", r)
 	}
+}
+
+func ExampleDecoder_DecodeNext() {
+	csv := `Foo,Bar,Baz
+a,b,c
+d,e,f`
+	type row struct {
+		Foo, Bar, Baz string
+	}
+	var r row
+	d := NewDecoder(strings.NewReader(csv))
+	for {
+		if err := d.DecodeNext(&r); err == io.EOF {
+			break
+		}
+		fmt.Println(r)
+	}
+	// Output:
+	// {a b c}
+	// {d e f}
 }
