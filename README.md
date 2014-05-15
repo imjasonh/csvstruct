@@ -1,4 +1,4 @@
 csvstruct
 =========
 
-[![GoDoc](https://godoc.org/gist.github.com/8317691.git?status.png)](https://godoc.org/gist.github.com/8317691.git)
+[![GoDoc](https://godoc.org/github.com/ImJasonH/csvstruct?status.png)](https://godoc.org/github.com/ImJasonH/csvstruct)
