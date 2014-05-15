@@ -1,71 +1,52 @@
-package main
+package csvstruct
 
 import (
 	"encoding/csv"
-	"fmt"
 	"io"
 	"reflect"
-	"strings"
 )
 
-type example struct {
-	Foo string `csv:"foo"`
-	Bar string
+type Decoder interface {
+	DecodeNext(v interface{}) error
 }
 
-func main() {
-	data := `
-foo,Bar,baz
-a,b,c
-d,e,f
-g,h,i`
-	ch := make(chan interface{})
-	r, _ := newCsvReader(strings.NewReader(data))
-	e := example{}
-	_ = r.Read(e, ch)
+type decoder struct {
+	hm map[string]int
+	r  csv.Reader
 }
 
-type csvReader struct {
-	header []string
-	r      csv.Reader
-}
-
-func newCsvReader(r io.Reader) (*csvReader, error) {
-	csvr := csv.NewReader(r)
-	header, err := csvr.Read()
-	if err != nil {
-		return nil, err
+func NewDecoder(r io.Reader) Decoder {
+	return decoder{
+		r: *csv.NewReader(r),
 	}
-	c := csvReader{
-		header: header,
-		r:      *csvr,
-	}
-	return &c, nil
 }
 
-func (r csvReader) Read(in interface{}, ch chan<- interface{}) error {
-	t := reflect.TypeOf(in)
-	hm := reverse(r.header)
-
-	line, err := r.r.Read()
-	for err != io.EOF {
+func (d decoder) DecodeNext(in interface{}) error {
+	if len(d.hm) == 0 {
+		// First run; read header row
+		header, err := d.r.Read()
 		if err != nil {
 			return err
 		}
-		out := reflect.ValueOf(&in)
-		for i := 0; i < t.NumField(); i++ {
-			f := t.Field(i)
-			n := f.Name
-			if f.Tag.Get("csv") == "" {
-				n = f.Tag.Get("csv")
-			}
-			val := line[hm[n]]
-			v := reflect.ValueOf(&val)
-			v.Elem().SetString(line[hm[n]])
-			out.Elem().Set(v)
-		}
-		fmt.Println("%v", out.Elem().Interface())
-		line, err = r.r.Read()
+		d.hm = reverse(header)
+	}
+
+	t := reflect.TypeOf(in)
+
+	line, err := d.r.Read()
+	if err != nil {
+		return err
+	}
+
+	out := reflect.ValueOf(in)
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		n := f.Name
+		// TODO: f.Tag.Get("csv")
+		val := line[d.hm[n]]
+		v := reflect.ValueOf(&val)
+		v.Elem().SetString(line[d.hm[n]])
+		out.Elem().Set(v)
 	}
 	return nil
 }
