@@ -2,7 +2,10 @@ package csvstruct
 
 import (
 	"encoding/csv"
+	"errors"
+	"fmt"
 	"io"
+	"log"
 	"reflect"
 )
 
@@ -26,28 +29,34 @@ func (d decoder) DecodeNext(v interface{}) error {
 		// First run; read header row
 		header, err := d.r.Read()
 		if err != nil {
-			return err
+			return fmt.Errorf("error reading headers: %v", err)
 		}
 		d.hm = reverse(header)
 	}
-
-	t := reflect.TypeOf(v)
 
 	line, err := d.r.Read()
 	if err != nil {
 		return err
 	}
 
-	out := reflect.ValueOf(v)
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return errors.New("must be pointer")
+	}
+
+	t := reflect.TypeOf(rv.Elem())
+	out := reflect.New(t).Elem()
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
+		if f.Anonymous {
+			continue
+		}
 		n := f.Name
-		// TODO: f.Tag.Get("csv")
-		val := line[d.hm[n]]
-		vval := reflect.ValueOf(&val)
-		vval.Elem().SetString(line[d.hm[n]])
-		out.Elem().Set(vval)
+		strv := line[d.hm[n]]
+		log.Printf("%s = %s\n", n, strv)
+		out.FieldByName(n).SetString(strv)
 	}
+	v = out
 	return nil
 }
 

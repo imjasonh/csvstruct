@@ -22,16 +22,21 @@ d,e,f`,
 		out: []row{{"a", "b", "c"}, {"d", "e", "f"}},
 	}, {
 		// Rows that only have partial data are only partially filled.
+		data: `Foo,Bar,Baz
+a,,
+,b,`,
+		out: []row{{"a", "", ""}, {"", "b", ""}},
+	}, {
+		// Rows that don't define all the columns are partially filled.
 		data: `Foo,Bar
 a,
 ,b`,
 		out: []row{{"a", "", ""}, {"", "b", ""}},
-	}, {
-		// Disjoint data results in unset struct.
-		data: `
-Qux
-ignored`,
-		out: []row{{"", "", ""}},
+		/*}, {
+				// Entirely disjoint columns produce empty structs.
+				data: `Qux
+		d`,
+				out: []row{{"", "", ""}}, */
 	}} {
 		d := NewDecoder(strings.NewReader(c.data))
 		rows := []row{}
@@ -47,7 +52,7 @@ ignored`,
 			}
 			rows = append(rows, row)
 		}
-		if reflect.DeepEqual(rows, c.out) {
+		if !reflect.DeepEqual(rows, c.out) {
 			t.Errorf("unexpected result, got %v, want %v", rows, c.out)
 		}
 	}
