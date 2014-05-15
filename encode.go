@@ -7,6 +7,7 @@ import (
 	"reflect"
 )
 
+// Encoder encodes and writes CSV rows to an output stream.
 type Encoder interface {
 	EncodeNext(v interface{}) error
 }
@@ -16,10 +17,12 @@ type encoder struct {
 	headersWritten bool
 }
 
+// NewEncoder returns an encoder that writes to w.
 func NewEncoder(w io.Writer) Encoder {
 	return &encoder{w: csv.NewWriter(w)}
 }
 
+// EncodeNext writes the CSV encoding of v to the stream.
 func (e *encoder) EncodeNext(v interface{}) error {
 	t := reflect.ValueOf(v).Type()
 	if !e.headersWritten {
