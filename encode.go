@@ -14,7 +14,7 @@ type Encoder interface {
 
 type encoder struct {
 	w  csv.Writer
-	hw bool
+	hm map[string]int
 }
 
 // NewEncoder returns an encoder that writes to w.
@@ -24,52 +24,81 @@ func NewEncoder(w io.Writer) Encoder {
 
 // EncodeNext writes the CSV encoding of v to the stream.
 func (e *encoder) EncodeNext(v interface{}) error {
+	if v == nil {
+		return nil
+	}
+
 	t := reflect.ValueOf(v).Type()
-	if !e.hw {
-		headers := make([]string, t.NumField())
+	if e.hm == nil {
+		e.hm = make(map[string]int)
+		headers := []string{}
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
 			if f.PkgPath != "" { // Filter unexported fields
 				continue
 			}
-			h := f.Name
+			n := f.Name
 			if f.Tag.Get("csv") != "" {
-				h = f.Tag.Get("csv")
+				n = f.Tag.Get("csv")
+				if n == "-" {
+					continue
+				}
 			}
-			headers[i] = h
+			headers = append(headers, n)
+			e.hm[n] = i
 		}
 		if err := e.w.Write(headers); err != nil {
 			return err
 		}
-		e.hw = true
 	}
 
 	rv := reflect.ValueOf(v)
-	row := make([]string, t.NumField())
+	row := []string{}
+	add := false // Whether there has been a row to write in this call.
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		if f.PkgPath != "" { // Filter unexported fields
 			continue
 		}
+		n := f.Name
+		if f.Tag.Get("csv") != "" {
+			n = f.Tag.Get("csv")
+		}
+
+		fi, ok := e.hm[n]
+		if !ok {
+			// Unmapped header value
+			continue
+		}
+
+		// Increase the row size to fit the new row.
+		for fi >= len(row) {
+			row = append(row, "")
+		}
+
+		add = true
 		vf := rv.Field(i)
 		switch vf.Kind() {
 		case reflect.String:
-			row[i] = vf.String()
+			row[fi] = vf.String()
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			row[i] = fmt.Sprintf("%d", vf.Int())
+			row[fi] = fmt.Sprintf("%d", vf.Int())
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			row[i] = fmt.Sprintf("%d", vf.Uint())
+			row[fi] = fmt.Sprintf("%d", vf.Uint())
 		case reflect.Float64:
-			row[i] = fmt.Sprintf("%f", vf.Float())
+			row[fi] = fmt.Sprintf("%f", vf.Float())
 		case reflect.Bool:
-			row[i] = fmt.Sprintf("%t", vf.Bool())
+			row[fi] = fmt.Sprintf("%t", vf.Bool())
 		default:
 			return fmt.Errorf("can't decode type %v", f.Type)
 		}
+	}
+	if !add {
+		return nil
 	}
 	if err := e.w.Write(row); err != nil {
 		return err
 	}
 	e.w.Flush()
-	return nil
+	return e.w.Error()
 }

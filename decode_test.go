@@ -25,15 +25,15 @@ d,e,f
 	}, {
 		// Rows that only have partial data are only partially filled.
 		data: `Foo,Bar,Baz
-a,,
-,b,
+a,"",""
+"",b,""
 `,
 		out: []row{{"a", "", ""}, {"", "b", ""}},
 	}, {
 		// Rows that don't define all the columns are partially filled.
 		data: `Foo,Bar
-a,
-,b
+a,""
+"",b
 `,
 		out: []row{{"a", "", ""}, {"", "b", ""}},
 	}, {

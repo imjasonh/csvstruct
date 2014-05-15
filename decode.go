@@ -31,13 +31,12 @@ func NewDecoder(r io.Reader) Decoder {
 
 // DecodeNext reads the next CSV-encoded value from its input and stores it in the value pointed to by v.
 func (d *decoder) DecodeNext(v interface{}) error {
-	rv := reflect.ValueOf(v)
-
 	// v is nil, skip this line and proceed.
-	if rv.Kind() == reflect.Invalid {
+	if v == nil {
 		_, err := d.read()
 		return err
 	}
+	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
 		return errors.New("must be pointer")
 	}
