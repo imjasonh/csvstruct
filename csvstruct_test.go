@@ -64,10 +64,9 @@ func TestDecode_Unexported(t *testing.T) {
 	type row struct {
 		Exported, unexported string
 	}
-	d := NewDecoder(strings.NewReader(`Exported,unexported
-a,b`))
 	var r row
-	if err := d.DecodeNext(&r); err != nil {
+	if err := NewDecoder(strings.NewReader(`Exported,unexported
+a,b`)).DecodeNext(&r); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	exp := row{Exported: "a"}
@@ -82,14 +81,47 @@ func TestDecode_Tags(t *testing.T) {
 		Bar     string
 		Ignored string `csv:"-"`
 	}
-	d := NewDecoder(strings.NewReader(`renamed_foo,Bar,Ignored
-a,b,c`))
 	var r row
-	if err := d.DecodeNext(&r); err != nil {
+	if err := NewDecoder(strings.NewReader(`renamed_foo,Bar,Ignored
+a,b,c`)).DecodeNext(&r); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	exp := row{"a", "b", ""}
 	if !reflect.DeepEqual(r, exp) {
 		t.Errorf("unexpected results, got %v, want %v", r, exp)
+	}
+}
+
+func TestDecode_NonStrings(t *testing.T) {
+	type row struct {
+		Int     int
+		Int64   int64
+		Float64 float64
+		Bool    bool
+	}
+	var r row
+	if err := NewDecoder(strings.NewReader(`Int,Int64,Float64,Bool
+123,123456789,123.456,true`)).DecodeNext(&r); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	exp := row{123, 123456789, 123.456, true}
+	if !reflect.DeepEqual(r, exp) {
+		t.Errorf("unexpected results, got %v, want %v", r, exp)
+	}
+}
+
+func TestDecode_Pointers(t *testing.T) {
+	t.Skip("pointers are not yet supported")
+	type row struct {
+		S  string
+		SP *string
+	}
+	var r row
+	if err := NewDecoder(strings.NewReader(`S,SP
+a,b`)).DecodeNext(&r); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if r.S != "a" || r.SP == nil || *r.SP != "b" {
+		t.Errorf("unexpected results, got %v", r)
 	}
 }

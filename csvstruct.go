@@ -1,7 +1,6 @@
 // TODO: support DecodeNext(nil) to skip a line
 // TODO: NewEncoder/EncodeNext -- header will be fields in first item...
 // TODO: Encode/Decode map[string]string
-// TODO: Encode/Decode non-string values?
 
 // Package csvstruct provides methods to decode a CSV file into a struct.
 package csvstruct
@@ -12,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strconv"
 )
 
 // Decoder reads and decodes CSV rows from an input stream.
@@ -69,7 +69,30 @@ func (d *decoder) DecodeNext(v interface{}) error {
 		strv := line[idx]
 		vf := rv.FieldByName(f.Name)
 		if vf.CanSet() {
-			vf.SetString(strv)
+			switch vf.Kind() {
+			case reflect.String:
+				vf.SetString(strv)
+			case reflect.Int, reflect.Int64:
+				i, err := strconv.ParseInt(strv, 10, 64)
+				if err != nil {
+					return fmt.Errorf("error decoding: %v", err)
+				}
+				vf.SetInt(i)
+			case reflect.Float64:
+				f, err := strconv.ParseFloat(strv, 64)
+				if err != nil {
+					return fmt.Errorf("error decoding: %v", err)
+				}
+				vf.SetFloat(f)
+			case reflect.Bool:
+				b, err := strconv.ParseBool(strv)
+				if err != nil {
+					return fmt.Errorf("error decoding: %v", err)
+				}
+				vf.SetBool(b)
+			default:
+				return fmt.Errorf("can't decode type %v", vf.Type())
+			}
 		}
 	}
 	return nil
