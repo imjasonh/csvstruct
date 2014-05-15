@@ -96,15 +96,16 @@ func TestDecode_NonStrings(t *testing.T) {
 	type row struct {
 		Int     int
 		Int64   int64
+		Uint64  uint64
 		Float64 float64
 		Bool    bool
 	}
 	var r row
-	if err := NewDecoder(strings.NewReader(`Int,Int64,Float64,Bool
-123,123456789,123.456,true`)).DecodeNext(&r); err != nil {
+	if err := NewDecoder(strings.NewReader(`Int,Int64,Uint64,Float64,Bool
+123,-123456789,123456789,123.456,true`)).DecodeNext(&r); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	exp := row{123, 123456789, 123.456, true}
+	exp := row{123, -123456789, 123456789, 123.456, true}
 	if !reflect.DeepEqual(r, exp) {
 		t.Errorf("unexpected results, got %v, want %v", r, exp)
 	}

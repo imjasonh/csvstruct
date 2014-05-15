@@ -72,12 +72,18 @@ func (d *decoder) DecodeNext(v interface{}) error {
 			switch vf.Kind() {
 			case reflect.String:
 				vf.SetString(strv)
-			case reflect.Int, reflect.Int64:
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				i, err := strconv.ParseInt(strv, 10, 64)
 				if err != nil {
 					return fmt.Errorf("error decoding: %v", err)
 				}
 				vf.SetInt(i)
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				u, err := strconv.ParseUint(strv, 10, 64)
+				if err != nil {
+					return fmt.Errorf("error decoding: %v", err)
+				}
+				vf.SetUint(u)
 			case reflect.Float64:
 				f, err := strconv.ParseFloat(strv, 64)
 				if err != nil {
