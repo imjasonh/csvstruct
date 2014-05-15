@@ -1,4 +1,3 @@
-// TODO: support DecodeNext(nil) to skip a line
 // TODO: NewEncoder/EncodeNext -- header will be fields in first item...
 // TODO: Encode/Decode map[string]string
 
@@ -34,7 +33,13 @@ func NewDecoder(r io.Reader) Decoder {
 // DecodeNext reads the next CSV-encoded value from its input and stores it in the value pointed to by v.
 func (d *decoder) DecodeNext(v interface{}) error {
 	rv := reflect.ValueOf(v)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+
+	// v is nil, skip this line and proceed.
+	if rv.Kind() == reflect.Invalid {
+		_, err := d.read()
+		return err
+	}
+	if rv.Kind() != reflect.Ptr {
 		return errors.New("must be pointer")
 	}
 	rv = rv.Elem()

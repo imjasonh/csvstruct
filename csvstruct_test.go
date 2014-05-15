@@ -58,6 +58,9 @@ d
 		if !reflect.DeepEqual(rows, c.out) {
 			t.Errorf("unexpected result, got %v, want %v", rows, c.out)
 		}
+		if !isDone(d) {
+			t.Errorf("decoder unexpectedly not done")
+		}
 	}
 }
 
@@ -126,6 +129,33 @@ a,b`)).DecodeNext(&r); err != nil {
 	if r.S != "a" || r.SP == nil || *r.SP != "b" {
 		t.Errorf("unexpected results, got %v", r)
 	}
+}
+
+func TestDecode_DecodeNil(t *testing.T) {
+	type row struct {
+		Foo, Bar string
+	}
+	d := NewDecoder(strings.NewReader(`Foo,Bar
+ignore,this
+a,b`))
+	if err := d.DecodeNext(nil); err != nil {
+		t.Errorf("unexpected error while skipping line: %v", err)
+	}
+	var r row
+	if err := d.DecodeNext(&r); err != nil {
+		t.Errorf("unexpected error decoding after skip: %v", err)
+	}
+	exp := row{"a", "b"}
+	if r != exp {
+		t.Errorf("unexpected result, got %v, want %v", r, exp)
+	}
+	if !isDone(d) {
+		t.Errorf("decoder unexpectedly not done")
+	}
+}
+
+func isDone(d Decoder) bool {
+	return d.DecodeNext(nil) == io.EOF
 }
 
 func ExampleDecoder_DecodeNext() {
