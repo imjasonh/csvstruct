@@ -11,25 +11,66 @@ func TestEncodeNext(t *testing.T) {
 	}
 
 	for _, c := range []struct {
-		rows []row
+		rows []interface{}
 		exp  string
 	}{{
-		[]row{{"a", "b", "c"}, {"d", "e", "f"}},
+		[]interface{}{row{"a", "b", "c"}, row{"d", "e", "f"}},
 		`Foo,Bar,Baz
 a,b,c
 d,e,f
 `,
 	}, {
-		[]row{{"a", "", ""}, {"", "b", ""}},
+		[]interface{}{row{"a", "", ""}, row{"", "b", ""}},
 		`Foo,Bar,Baz
 a,"",""
 "",b,""
 `,
 	}, {
-		[]row{{"a", "", ""}, {"", "b", ""}},
+		[]interface{}{row{"a", "", ""}, row{"", "b", ""}},
 		`Foo,Bar,Baz
 a,"",""
 "",b,""
+`,
+	}, {
+		// Encoding unexported fields.
+		[]interface{}{struct{ Exported, unexported string }{"a", "b"}},
+		`Exported
+a
+`,
+	}, {
+		// Encoding renamed and ignored fields.
+		[]interface{}{struct {
+			Foo     string `csv:"renamed_foo"`
+			Bar     string
+			Ignored string `csv:"-"`
+		}{"a", "b", "c"}},
+		`renamed_foo,Bar
+a,b
+`,
+	}, {
+		// Encoding non-string fields.
+		[]interface{}{struct {
+			Int     int
+			Int64   int64
+			Uint64  uint64
+			Float64 float64
+			Bool    bool
+		}{123, -123456789, 123456789, 123.456, true}},
+		`Int,Int64,Uint64,Float64,Bool
+123,-123456789,123456789,123.456000,true
+`,
+	}, {
+		// Encoding rows with different fields.
+		// Headers are taken from the fields in the first call to EncodeNext.
+		// Further calls add whatever fields they can, and if no fields are
+		// shared then the row is not written.
+		[]interface{}{
+			struct{ Foo, Bar string }{"foo", "bar"},
+			struct{ Baz string }{"baz"},
+			struct{ Bar, Baz string }{"bar", "baz"}},
+		`Foo,Bar
+foo,bar
+"",bar
 `,
 	}} {
 		var buf bytes.Buffer
@@ -41,95 +82,7 @@ a,"",""
 		}
 		got := buf.String()
 		if got != c.exp {
-			t.Errorf("unexpected result, got %s, want %s", got, c.exp)
+			t.Errorf("unexpected result encoding %+v, got %s, want %s", c.rows, got, c.exp)
 		}
-	}
-}
-
-func TestEncode_Unexported(t *testing.T) {
-	r := struct {
-		Exported, unexported string
-	}{"a", "b"}
-	var buf bytes.Buffer
-	if err := NewEncoder(&buf).EncodeNext(r); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	exp := `Exported
-a
-`
-	got := buf.String()
-	if got != exp {
-		t.Errorf("unexpected result, got %s, want %s", got, exp)
-	}
-}
-
-func TestEncode_Tags(t *testing.T) {
-	r := struct {
-		Foo     string `csv:"renamed_foo"`
-		Bar     string
-		Ignored string `csv:"-"`
-	}{"a", "b", "c"}
-	var buf bytes.Buffer
-	if err := NewEncoder(&buf).EncodeNext(r); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	exp := `renamed_foo,Bar
-a,b
-`
-	got := buf.String()
-	if got != exp {
-		t.Errorf("unexpected result, got %s, want %s", got, exp)
-	}
-}
-
-func TestEncode_NonStrings(t *testing.T) {
-	r := struct {
-		Int     int
-		Int64   int64
-		Uint64  uint64
-		Float64 float64
-		Bool    bool
-	}{123, -123456789, 123456789, 123.456, true}
-	var buf bytes.Buffer
-	if err := NewEncoder(&buf).EncodeNext(r); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	exp := `Int,Int64,Uint64,Float64,Bool
-123,-123456789,123456789,123.456000,true
-`
-	got := buf.String()
-	if got != exp {
-		t.Errorf("unexpected result, got %s, want %s", got, exp)
-	}
-}
-
-func TestEncodeDifferent(t *testing.T) {
-	row1 := struct {
-		Foo, Bar string
-	}{"foo", "bar"}
-
-	row2 := struct {
-		Baz string
-	}{"baz"}
-	row3 := struct {
-		Bar, Baz string
-	}{"bar", "baz"}
-	var buf bytes.Buffer
-	e := NewEncoder(&buf)
-	// Headers are taken from the fields in the first call to EncodeNext.
-	// Further calls add whatever fields they can, and if no fields are
-	// shared then the row is not written.
-	for _, r := range []interface{}{row1, row2, row3} {
-		if err := e.EncodeNext(r); err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-	}
-	exp := `Foo,Bar
-foo,bar
-"",bar
-`
-	got := buf.String()
-	if got != exp {
-		t.Errorf("unexpected result, got %s, want %s", got, exp)
 	}
 }
