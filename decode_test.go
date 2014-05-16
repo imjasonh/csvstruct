@@ -74,7 +74,7 @@ a,b`)).DecodeNext(&r); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	exp := row{Exported: "a"}
-	if !reflect.DeepEqual(r, exp) {
+	if r != exp {
 		t.Errorf("unexpected result, got %v, want %v", r, exp)
 	}
 }
@@ -91,7 +91,7 @@ a,b,c`)).DecodeNext(&r); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	exp := row{"a", "b", ""}
-	if !reflect.DeepEqual(r, exp) {
+	if r != exp {
 		t.Errorf("unexpected results, got %v, want %v", r, exp)
 	}
 }
@@ -110,7 +110,7 @@ func TestDecode_NonStrings(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	exp := row{123, -123456789, 123456789, 123.456, true}
-	if !reflect.DeepEqual(r, exp) {
+	if r != exp {
 		t.Errorf("unexpected results, got %v, want %v", r, exp)
 	}
 }
