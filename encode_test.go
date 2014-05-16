@@ -26,7 +26,8 @@ a,"",""
 "",b,""
 `,
 	}, {
-		[]interface{}{row{"a", "", ""}, row{"", "b", ""}},
+		// Encoding incomplete structs still fills in missing columns.
+		[]interface{}{row{"a", "", ""}, struct{ Foo, Bar string }{"", "b"}},
 		`Foo,Bar,Baz
 a,"",""
 "",b,""
@@ -47,6 +48,16 @@ a
 		`renamed_foo,Bar
 a,b
 `,
+	}, {
+		// If the first row contains no encodable fields, further rows
+		// will be ignored as well, resulting in an empty output.
+		[]interface{}{struct {
+			Ignored    string `csv:"-"`
+			unexported string
+		}{"you", "won't"}, struct {
+			Exported string
+		}{"see"}},
+		"",
 	}, {
 		// Encoding non-string fields.
 		[]interface{}{struct {

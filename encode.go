@@ -54,6 +54,11 @@ func (e *encoder) EncodeNext(v interface{}) error {
 			headers = append(headers, n)
 			e.hm[n] = i
 		}
+		if len(e.hm) == 0 {
+			// Header row has no exported, unignored fields, so write nothing.
+			// This will result in an empty output no matter what is Encoded.
+			return nil
+		}
 		if err := e.w.Write(headers); err != nil {
 			return err
 		}
