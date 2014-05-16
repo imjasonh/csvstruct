@@ -23,14 +23,14 @@ type Person struct {
 	Height float64
 }
 var p Person
-var err error
 d := csvstruct.NewDecoder(f)
-for err != io.EOF {
-  err = d.DecodeNext(&p)
-  if err != nil && err != io.EOF {
-  	// handle error
-  }
-  fmt.Printf('%s's age is %d\n", p.Name, p.Age)
+for {
+	if err := d.DecodeNext(&p); err == io.EOF {
+		break
+	} else if err != nil {
+		// handle error
+	}
+	fmt.Printf('%s's age is %d\n", p.Name, p.Age)
 }
 ```
 

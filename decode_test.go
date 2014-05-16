@@ -170,6 +170,8 @@ d,e,f`
 	for {
 		if err := d.DecodeNext(&r); err == io.EOF {
 			break
+		} else if err != nil {
+			panic(err)
 		}
 		fmt.Println(r)
 	}
