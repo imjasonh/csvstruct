@@ -10,6 +10,11 @@ import (
 
 // Encoder encodes and writes CSV rows to an output stream.
 type Encoder interface {
+	// EncodeNext encodes v into a CSV row and writes it to the Encoder's
+	// Writer.
+	//
+	// On the first call to EncodeNext, v's fields will be used to write the
+	// header row, then v's values will be written as the second row.
 	EncodeNext(v interface{}) error
 }
 
@@ -23,7 +28,6 @@ func NewEncoder(w io.Writer) Encoder {
 	return &encoder{w: *csv.NewWriter(w)}
 }
 
-// EncodeNext writes the CSV encoding of v to the stream.
 func (e *encoder) EncodeNext(v interface{}) error {
 	if v == nil {
 		return nil

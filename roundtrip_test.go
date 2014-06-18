@@ -40,7 +40,7 @@ c,d,456
 		if err := d.DecodeNext(&r); err == io.EOF {
 			break
 		} else if err != nil {
-			t.Errorf("unexpected error decoding: %v")
+			t.Errorf("unexpected error decoding: %v", err)
 		}
 		out = append(out, r)
 	}

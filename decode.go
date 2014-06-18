@@ -14,6 +14,12 @@ import (
 
 // Decoder reads and decodes CSV rows from an input stream.
 type Decoder interface {
+	// DecodeNext populates v with the values from the next row in the
+	// Decoder's Reader.
+	//
+	// On the first call to DecodeNext, the first row in the reader will be
+	// used as the header row to map CSV fields to struct fields, and the
+	// second row will be read to populate v.
 	DecodeNext(v interface{}) error
 }
 
@@ -22,14 +28,13 @@ type decoder struct {
 	r  csv.Reader
 }
 
-// NewDecoder returns a decoder that reads from r.
+// NewDecoder returns a Decoder that reads from r.
 func NewDecoder(r io.Reader) Decoder {
 	return &decoder{
 		r: *csv.NewReader(r),
 	}
 }
 
-// DecodeNext reads the next CSV-encoded value from its input and stores it in the value pointed to by v.
 func (d *decoder) DecodeNext(v interface{}) error {
 	// v is nil, skip this line and proceed.
 	if v == nil {
