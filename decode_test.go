@@ -115,6 +115,33 @@ func TestDecode_NonStrings(t *testing.T) {
 	}
 }
 
+func TestDecode_IncompatibleTypes(t *testing.T) {
+	// Attempting to parse a string as an int will fail in strconv
+	type row struct {
+		Int int
+	}
+	var r row
+	if err := NewDecoder(strings.NewReader(`Int
+foo`)).DecodeNext(&r); err.Error() != "error decoding: strconv.ParseInt: parsing \"foo\": invalid syntax" {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestDecode_CompatibleTypes(t *testing.T) {
+	// Attempting to parse an int as a string will succeed
+	type row struct {
+		String string
+	}
+	var r row
+	if err := NewDecoder(strings.NewReader(`String
+123`)).DecodeNext(&r); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if r.String != "123" {
+		t.Errorf("unexpected results, got %v, want %v", r, row{"123"})
+	}
+}
+
 func TestDecode_Pointers(t *testing.T) {
 	t.Skip("pointers are not yet supported")
 	type row struct {

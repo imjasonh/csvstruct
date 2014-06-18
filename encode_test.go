@@ -77,11 +77,22 @@ a,b
 		// shared then the row is not written.
 		[]interface{}{
 			struct{ Foo, Bar string }{"foo", "bar"},
-			struct{ Baz string }{"baz"},
-			struct{ Bar, Baz string }{"bar", "baz"}},
+			struct{ Baz string }{"baz"},              // Will be skipped because it shares to fields.
+			struct{ Bar, Baz string }{"bar", "baz"}}, // Only shares Bar, only writes Bar.
 		`Foo,Bar
 foo,bar
 "",bar
+`,
+	}, {
+		// Encoding rows with the same fields but with different types.
+		[]interface{}{
+			struct{ Foo string }{"foo"},
+			struct{ Foo int64 }{123},
+			struct{ Foo bool }{true}},
+		`Foo
+foo
+123
+true
 `,
 	}} {
 		var buf bytes.Buffer
