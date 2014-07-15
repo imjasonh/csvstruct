@@ -40,8 +40,9 @@ func (e *encoder) EncodeNext(v interface{}) error {
 	if e.hm == nil {
 		e.hm = make(map[string]int)
 		headers := []string{}
-		for i := 0; i < t.NumField(); i++ {
-			f := t.Field(i)
+		i := 0
+		for j := 0; j < t.NumField(); j++ {
+			f := t.Field(j)
 			if f.Anonymous {
 				continue
 			}
@@ -57,6 +58,7 @@ func (e *encoder) EncodeNext(v interface{}) error {
 			}
 			headers = append(headers, n)
 			e.hm[n] = i
+			i++
 		}
 		if len(e.hm) == 0 {
 			// Header row has no exported, unignored fields, so write nothing.

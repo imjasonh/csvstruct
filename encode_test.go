@@ -44,9 +44,10 @@ a
 			Foo     string `csv:"renamed_foo"`
 			Bar     string
 			Ignored string `csv:"-"`
-		}{"a", "b", "c"}},
-		`renamed_foo,Bar
-a,b
+			Baz     string
+		}{"a", "b", "c", "d"}},
+		`renamed_foo,Bar,Baz
+a,b,d
 `,
 	}, {
 		// If the first row contains no encodable fields, further rows
