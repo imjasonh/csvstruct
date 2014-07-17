@@ -1,5 +1,3 @@
-// TODO: Encode/Decode map[string]string
-
 // Package csvstruct provides methods to decode a CSV file into a struct.
 package csvstruct
 
