@@ -66,25 +66,44 @@ func (d *decoder) DecodeNext(v interface{}) error {
 		d.skipped++
 	}
 
-	// v is nil, skip this line and proceed.
-	if v == nil {
-		_, err := d.read()
+	line, err := d.read()
+	if err != nil {
 		return err
 	}
+
+	// v is nil, skip this line and proceed.
+	if v == nil {
+		return nil
+	}
+
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
 		return errors.New("must be pointer")
 	}
 	rv = rv.Elem()
-
 	t := reflect.ValueOf(v).Elem().Type()
-	if t.Kind() != reflect.Struct {
-		return errors.New("must be pointer to struct")
+
+	if t.Kind() == reflect.Map {
+		if t.Key().Kind() != reflect.String {
+			return errors.New("map key must be string")
+		}
+		switch t.Elem().Kind() {
+		case reflect.String:
+			m := *(v.(*map[string]string))
+			for hv, hidx := range d.hm {
+				m[hv] = line[hidx]
+			}
+		// TODO: Support arbitrary map values by parsing string values
+		case reflect.Interface:
+			return errors.New("TODO")
+		default:
+			return fmt.Errorf("can't decode type %v", t.Elem().Kind())
+		}
+		return nil
 	}
 
-	line, err := d.read()
-	if err != nil {
-		return err
+	if t.Kind() != reflect.Struct {
+		return errors.New("must be pointer to struct")
 	}
 
 	for i := 0; i < t.NumField(); i++ {

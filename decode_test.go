@@ -246,6 +246,50 @@ d,"",f
 	}
 }
 
+func TestDecode_Map(t *testing.T) {
+	data := `foo,bar,baz
+a,b,c
+`
+	exp := map[string]string{
+		"foo": "a",
+		"bar": "b",
+		"baz": "c",
+	}
+	got := map[string]string{}
+	d := NewDecoder(strings.NewReader(data))
+	if err := d.DecodeNext(&got); err != nil {
+		t.Errorf("%v", err)
+	}
+	if !reflect.DeepEqual(got, exp) {
+		t.Errorf("unexpected result, got %v, want %v", got, exp)
+	}
+	if !isDone(d) {
+		t.Errorf("decoder unexpectedly not done")
+	}
+}
+
+func TestDecode_MapErrors(t *testing.T) {
+	data := `foo,bar,baz
+a,b,c
+`
+	d := NewDecoder(strings.NewReader(data))
+
+	var m map[string]string
+	if err := d.DecodeNext(m); err == nil {
+		t.Errorf("expected error")
+	}
+
+	var m1 map[int]string
+	if err := d.DecodeNext(m1); err == nil {
+		t.Errorf("expected error")
+	}
+
+	var m2 map[string]int
+	if err := d.DecodeNext(m2); err == nil {
+		t.Errorf("expected error")
+	}
+}
+
 func isDone(d Decoder) bool {
 	return d.DecodeNext(nil) == io.EOF
 }
