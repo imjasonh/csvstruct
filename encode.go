@@ -51,48 +51,65 @@ func (e *encoder) EncodeNext(v interface{}) error {
 	if v == nil {
 		return nil
 	}
+	switch reflect.ValueOf(v).Type().Kind() {
+	case reflect.Map:
+		return e.encodeMap(v)
+	case reflect.Struct:
+		return e.encodeStruct(v)
+	default:
+		return errors.New("must encode map or struct")
+	}
+}
 
+func (e *encoder) encodeMap(v interface{}) error {
+	if reflect.ValueOf(v).Type().Key().Kind() != reflect.String {
+		return errors.New("map key must be string")
+	}
+	m := v.(map[string]interface{})
+
+	if e.hm == nil {
+		e.hm = make(map[string]int)
+		headers := []string{}
+		for k, _ := range m {
+			headers = append(headers, k)
+		}
+		sort.Strings(headers)
+		for i, h := range headers {
+			e.hm[h] = i
+		}
+		if len(e.hm) == 0 {
+			// First row was an empty map, so write nothing.
+			// This will result in an empty output no matter what is Encoded.
+			return nil
+		}
+		if !e.opts.IgnoreHeader {
+			if err := e.w.Write(headers); err != nil {
+				return err
+			}
+		}
+	}
+	row := make([]string, len(m))
+	add := false // Whether there has been a row to write in this call.
+	for h, i := range e.hm {
+		val, ok := m[h]
+		if !ok {
+			continue
+		}
+		add = true
+		row[i] = fmt.Sprint(val)
+	}
+	if !add {
+		return nil
+	}
+	if err := e.w.Write(row); err != nil {
+		return err
+	}
+	e.w.Flush()
+	return e.w.Error()
+}
+
+func (e *encoder) encodeStruct(v interface{}) error {
 	t := reflect.ValueOf(v).Type()
-	if t.Kind() == reflect.Map {
-		if t.Key().Kind() != reflect.String {
-			return errors.New("map key must be string")
-		}
-		m := v.(map[string]interface{})
-
-		if e.hm == nil {
-			e.hm = make(map[string]int)
-			headers := []string{}
-			for k, _ := range m {
-				headers = append(headers, k)
-			}
-			sort.Strings(headers)
-			for i, h := range headers {
-				e.hm[h] = i
-			}
-			if len(e.hm) == 0 {
-				// First row was an empty map, so write nothing.
-				// This will result in an empty output no matter what is Encoded.
-			}
-			if !e.opts.IgnoreHeader {
-				if err := e.w.Write(headers); err != nil {
-					return err
-				}
-			}
-		}
-		row := make([]string, len(m))
-		for k, val := range m {
-			row[e.hm[k]] = fmt.Sprint(val)
-		}
-		if err := e.w.Write(row); err != nil {
-			return err
-		}
-		e.w.Flush()
-		return e.w.Error()
-	}
-
-	if t.Kind() != reflect.Struct {
-		return errors.New("must be struct")
-	}
 	if e.hm == nil {
 		e.hm = make(map[string]int)
 		headers := []string{}

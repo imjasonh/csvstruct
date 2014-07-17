@@ -148,23 +148,82 @@ d,e,f
 }
 
 func TestEncode_Map(t *testing.T) {
-	m := map[string]interface{}{
-		"foo": "a",
-		"bar": true,
-		"baz": 1.23,
-	}
-	// Keys are sorted before being written to the header
-	exp := `bar,baz,foo
+	for _, c := range []struct {
+		rows []map[string]interface{}
+		exp  string
+	}{{
+		[]map[string]interface{}{{
+			"foo": "a",
+			"bar": true,
+			"baz": 1.23,
+		}, {
+			"foo": "b",
+			"bar": false,
+			"baz": 4.56,
+		}},
+		// Keys are sorted before being written to the header
+		`bar,baz,foo
 true,1.23,a
-`
+false,4.56,b
+`,
+	}, {
+		[]map[string]interface{}{{
+			"foo": "a",
+		}, {
+			"bar": "b",
+		}},
+		`foo
+a
+`,
+	}, {
+		[]map[string]interface{}{{
+			"foo": "",
+		}, {
+			"foo": true,
+		}},
+		`foo
+""
+true
+`,
+	}} {
+		var buf bytes.Buffer
+		e := NewEncoder(&buf)
+		for _, r := range c.rows {
+			if err := e.EncodeNext(r); err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}
+		got := buf.String()
+		if got != c.exp {
+			t.Errorf("unexpected results encoding %+v, got %s, want %s", c.rows, got, c.exp)
+		}
+	}
+}
 
+// Tests that encoding a struct then encoding a compatible map works as expected.
+func TestEncode_Hybrid(t *testing.T) {
 	var buf bytes.Buffer
 	e := NewEncoder(&buf)
-	if err := e.EncodeNext(m); err != nil {
+	s := struct {
+		Foo string `csv:"foo"`
+		Bar string
+	}{"a", "b"}
+	if err := e.EncodeNext(s); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
+	m := map[string]interface{}{
+		"foo": "c",
+		"Bar": "d",
+	}
+	if err := e.EncodeNext(m); err != nil {
+		t.Errorf("unexpected err: %v", err)
+	}
+	exp := `foo,Bar
+a,b
+c,d
+`
 	got := buf.String()
 	if got != exp {
-		t.Errorf("unexpected results encoding %+v, got %s, want %s", m, got, exp)
+		t.Errorf("unexpected results, got %s, want %s", got, exp)
 	}
 }
