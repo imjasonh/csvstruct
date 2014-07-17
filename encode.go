@@ -21,9 +21,9 @@ type Encoder interface {
 
 // EncodeOpts specifies options to modify encoding behavior.
 type EncodeOpts struct {
-	IgnoreHeader bool // True to skip writing the header row
-	Comma        rune // Field delimiter (set to ',' by default)
-	UseCRLF      bool // True to use \r\n as the line terminator
+	SkipHeader bool // True to skip writing the header row
+	Comma      rune // Field delimiter (set to ',' by default)
+	UseCRLF    bool // True to use \r\n as the line terminator
 }
 
 type encoder struct {
@@ -82,7 +82,7 @@ func (e *encoder) encodeMap(v interface{}) error {
 			// This will result in an empty output no matter what is Encoded.
 			return nil
 		}
-		if !e.opts.IgnoreHeader {
+		if !e.opts.SkipHeader {
 			if err := e.w.Write(headers); err != nil {
 				return err
 			}
@@ -138,7 +138,7 @@ func (e *encoder) encodeStruct(v interface{}) error {
 			// This will result in an empty output no matter what is Encoded.
 			return nil
 		}
-		if !e.opts.IgnoreHeader {
+		if !e.opts.SkipHeader {
 			if err := e.w.Write(headers); err != nil {
 				return err
 			}

@@ -125,7 +125,7 @@ a%b%c
 d%e%f
 `,
 	}, {
-		EncodeOpts{IgnoreHeader: true},
+		EncodeOpts{SkipHeader: true},
 		`a,b,c
 d,e,f
 `,
