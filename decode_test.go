@@ -260,19 +260,21 @@ a,b,c
 }
 
 func TestDecode_MapErrors(t *testing.T) {
-	d := NewDecoder(strings.NewReader(""))
+	d := NewDecoder(strings.NewReader(`foo,bar
+a,b
+`))
 
-	var m map[string]string
+	m := map[string]string{}
 	if err := d.DecodeNext(m); err == nil {
 		t.Errorf("expected error")
 	}
 
-	var m1 map[int]string
+	m1 := map[int]string{}
 	if err := d.DecodeNext(m1); err == nil {
 		t.Errorf("expected error")
 	}
 
-	var m2 map[string]int
+	m2 := map[string]int{}
 	if err := d.DecodeNext(m2); err == nil {
 		t.Errorf("expected error")
 	}

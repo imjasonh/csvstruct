@@ -71,31 +71,40 @@ func (d *decoder) DecodeNext(v interface{}) error {
 		return errors.New("must be pointer")
 	}
 	rv = rv.Elem()
-	t := reflect.ValueOf(v).Elem().Type()
 
-	if t.Kind() == reflect.Map {
-		if t.Key().Kind() != reflect.String {
-			return errors.New("map key must be string")
-		}
-		switch t.Elem().Kind() {
-		case reflect.String:
-			m := *(v.(*map[string]string))
-			for hv, hidx := range d.hm {
-				m[hv] = line[hidx]
-			}
-		// TODO: Support arbitrary map values by parsing string values
-		case reflect.Interface:
-			return errors.New("TODO")
-		default:
-			return fmt.Errorf("can't decode type %v", t.Elem().Kind())
-		}
-		return nil
-	}
-
-	if t.Kind() != reflect.Struct {
+	switch rv.Type().Kind() {
+	case reflect.Map:
+		return d.decodeMap(v, line)
+	case reflect.Struct:
+		return d.decodeStruct(v, line)
+	default:
 		return errors.New("must be pointer to struct")
 	}
+}
+func (d *decoder) decodeMap(v interface{}, line []string) error {
+	rv := reflect.ValueOf(v)
+	t := rv.Elem().Type()
+	if t.Key().Kind() != reflect.String {
+		return errors.New("map key must be string")
+	}
+	switch t.Elem().Kind() {
+	case reflect.String:
+		m := *(v.(*map[string]string))
+		for hv, hidx := range d.hm {
+			m[hv] = line[hidx]
+		}
+	// TODO: Support arbitrary map values by parsing string values
+	case reflect.Interface:
+		return errors.New("TODO")
+	default:
+		return fmt.Errorf("can't decode type %v", t.Elem().Kind())
+	}
+	return nil
+}
 
+func (d *decoder) decodeStruct(v interface{}, line []string) error {
+	rv := reflect.ValueOf(v).Elem()
+	t := rv.Type()
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		if f.Anonymous {
