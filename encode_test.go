@@ -146,3 +146,25 @@ d,e,f
 		}
 	}
 }
+
+func TestEncode_Map(t *testing.T) {
+	m := map[string]interface{}{
+		"foo": "a",
+		"bar": true,
+		"baz": 1.23,
+	}
+	// Keys are sorted before being written to the header
+	exp := `bar,baz,foo
+true,1.23,a
+`
+
+	var buf bytes.Buffer
+	e := NewEncoder(&buf)
+	if err := e.EncodeNext(m); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	got := buf.String()
+	if got != exp {
+		t.Errorf("unexpected results encoding %+v, got %s, want %s", m, got, exp)
+	}
+}
