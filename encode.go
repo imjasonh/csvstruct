@@ -18,14 +18,32 @@ type Encoder interface {
 	EncodeNext(v interface{}) error
 }
 
+// EncodeOpts specifies options to modify encoding behavior.
+type EncodeOpts struct {
+	IgnoreHeader bool // True to skip writing the header row
+	Comma        rune // Field delimiter (set to ',' by default)
+	UseCRLF      bool // True to use \r\n as the line terminator
+}
+
 type encoder struct {
-	w  csv.Writer
-	hm map[string]int
+	w    csv.Writer
+	hm   map[string]int
+	opts EncodeOpts
 }
 
 // NewEncoder returns an encoder that writes to w.
 func NewEncoder(w io.Writer) Encoder {
-	return &encoder{w: *csv.NewWriter(w)}
+	return NewEncoderOpts(w, EncodeOpts{})
+}
+
+// NewEncoderOpts returns an encoder that writes to w, with options.
+func NewEncoderOpts(w io.Writer, opts EncodeOpts) Encoder {
+	csvw := csv.NewWriter(w)
+	if opts.Comma != rune(0) {
+		csvw.Comma = opts.Comma
+	}
+	csvw.UseCRLF = opts.UseCRLF
+	return &encoder{w: *csvw, opts: opts}
 }
 
 func (e *encoder) EncodeNext(v interface{}) error {
@@ -65,8 +83,10 @@ func (e *encoder) EncodeNext(v interface{}) error {
 			// This will result in an empty output no matter what is Encoded.
 			return nil
 		}
-		if err := e.w.Write(headers); err != nil {
-			return err
+		if !e.opts.IgnoreHeader {
+			if err := e.w.Write(headers); err != nil {
+				return err
+			}
 		}
 	}
 

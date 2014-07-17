@@ -78,7 +78,7 @@ a,b,d
 		// shared then the row is not written.
 		[]interface{}{
 			struct{ Foo, Bar string }{"foo", "bar"},
-			struct{ Baz string }{"baz"},              // Will be skipped because it shares to fields.
+			struct{ Baz string }{"baz"},              // Will be skipped because it shares no fields.
 			struct{ Bar, Baz string }{"bar", "baz"}}, // Only shares Bar, only writes Bar.
 		`Foo,Bar
 foo,bar
@@ -106,6 +106,43 @@ true
 		got := buf.String()
 		if got != c.exp {
 			t.Errorf("unexpected result encoding %+v, got %s, want %s", c.rows, got, c.exp)
+		}
+	}
+}
+
+func TestEncode_Opts(t *testing.T) {
+	rows := []struct{ A, B, C string }{
+		{"a", "b", "c"},
+		{"d", "e", "f"}}
+
+	for _, c := range []struct {
+		opts EncodeOpts
+		exp  string
+	}{{
+		EncodeOpts{Comma: '%'},
+		`A%B%C
+a%b%c
+d%e%f
+`,
+	}, {
+		EncodeOpts{IgnoreHeader: true},
+		`a,b,c
+d,e,f
+`,
+	}, {
+		EncodeOpts{UseCRLF: true},
+		"A,B,C\r\na,b,c\r\nd,e,f\r\n",
+	}} {
+		var buf bytes.Buffer
+		e := NewEncoderOpts(&buf, c.opts)
+		for _, r := range rows {
+			if err := e.EncodeNext(r); err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		}
+		got := buf.String()
+		if got != c.exp {
+			t.Errorf("unexpected results encoding %+v, got %s, want %s", rows, got, c.exp)
 		}
 	}
 }
