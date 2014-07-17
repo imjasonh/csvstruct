@@ -23,19 +23,49 @@ type Decoder interface {
 	DecodeNext(v interface{}) error
 }
 
+// DecodeOpts specifies options to modify decoding behavior.
+type DecoderOpts struct {
+	Comma            rune // field delimiter (set to ',' by default)
+	Comment          rune // comment character for start of line
+	LazyQuotes       bool // allow lazy quotes
+	TrimLeadingSpace bool // trim leading space
+	SkipLeadingRows  int  // number of leading rows to skip
+}
+
 type decoder struct {
-	hm map[string]int
-	r  csv.Reader
+	r       csv.Reader
+	hm      map[string]int
+	opts    DecoderOpts
+	skipped int
 }
 
 // NewDecoder returns a Decoder that reads from r.
 func NewDecoder(r io.Reader) Decoder {
-	return &decoder{
-		r: *csv.NewReader(r),
+	return NewDecoderOpts(r, DecoderOpts{})
+}
+
+func NewDecoderOpts(r io.Reader, opts DecoderOpts) Decoder {
+	csvr := csv.NewReader(r)
+	if opts.Comma != rune(0) {
+		csvr.Comma = opts.Comma
 	}
+	if opts.Comment != rune(0) {
+		csvr.Comment = opts.Comment
+	}
+	csvr.LazyQuotes = opts.LazyQuotes
+	csvr.TrimLeadingSpace = opts.TrimLeadingSpace
+	return &decoder{r: *csvr, opts: opts}
 }
 
 func (d *decoder) DecodeNext(v interface{}) error {
+	for d.skipped < d.opts.SkipLeadingRows {
+		// NB: Leading rows must still have the expected number of fields.
+		if _, err := d.r.Read(); err != nil {
+			return err
+		}
+		d.skipped++
+	}
+
 	// v is nil, skip this line and proceed.
 	if v == nil {
 		_, err := d.read()

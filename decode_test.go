@@ -181,6 +181,71 @@ a,b`))
 	}
 }
 
+func TestDecode_Opts(t *testing.T) {
+	type row struct{ A, B, C string }
+	exp := []row{{"a", "b", "c"}, {"d", "", "f"}}
+
+	for _, c := range []struct {
+		opts DecoderOpts
+		data string
+	}{{
+		DecoderOpts{Comma: '%'},
+		`A%B%C
+a%b%c
+d%""%f
+`,
+	}, {
+		DecoderOpts{Comment: '$'},
+		`A,B,C
+$comment
+a,b,c
+$comment
+d,"",f
+$comment
+`,
+	}, {
+		DecoderOpts{LazyQuotes: true},
+		`A,B,C
+a,b,c
+d,,f
+`,
+	}, {
+		DecoderOpts{TrimLeadingSpace: true},
+		`A,B,C
+  a,b,c
+	d,"",f
+`,
+	}, {
+		DecoderOpts{SkipLeadingRows: 3},
+		`leading,rows,skipped
+leading,rows,skipped
+leading,rows,skipped
+A,B,C
+a,b,c
+d,"",f
+`,
+	}} {
+		d := NewDecoderOpts(strings.NewReader(c.data), c.opts)
+		rows := []row{}
+		var r row
+		for {
+			if err := d.DecodeNext(&r); err == io.EOF {
+				break
+			} else if err != nil {
+				t.Errorf("%v", err)
+				break
+			}
+			rows = append(rows, r)
+		}
+		if !reflect.DeepEqual(rows, exp) {
+			t.Errorf("unexpected result, got %v, want %v", rows, exp)
+		}
+		if !isDone(d) {
+			t.Errorf("decoder unexpectedly not done")
+		}
+	}
+}
+
 func isDone(d Decoder) bool {
 	return d.DecodeNext(nil) == io.EOF
 }
