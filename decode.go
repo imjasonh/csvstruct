@@ -29,14 +29,12 @@ type DecoderOpts struct {
 	Comment          rune // comment character for start of line
 	LazyQuotes       bool // allow lazy quotes
 	TrimLeadingSpace bool // trim leading space
-	SkipLeadingRows  int  // number of leading rows to skip
 }
 
 type decoder struct {
-	r       csv.Reader
-	hm      map[string]int
-	opts    DecoderOpts
-	skipped int
+	r    csv.Reader
+	hm   map[string]int
+	opts DecoderOpts
 }
 
 // NewDecoder returns a Decoder that reads from r.
@@ -58,14 +56,6 @@ func NewDecoderOpts(r io.Reader, opts DecoderOpts) Decoder {
 }
 
 func (d *decoder) DecodeNext(v interface{}) error {
-	for d.skipped < d.opts.SkipLeadingRows {
-		// NB: Leading rows must still have the expected number of fields.
-		if _, err := d.r.Read(); err != nil {
-			return err
-		}
-		d.skipped++
-	}
-
 	line, err := d.read()
 	if err != nil {
 		return err

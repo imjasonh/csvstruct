@@ -215,15 +215,6 @@ d,,f
   a,b,c
 	d,"",f
 `,
-	}, {
-		DecoderOpts{SkipLeadingRows: 3},
-		`leading,rows,skipped
-leading,rows,skipped
-leading,rows,skipped
-A,B,C
-a,b,c
-d,"",f
-`,
 	}} {
 		d := NewDecoderOpts(strings.NewReader(c.data), c.opts)
 		rows := []row{}
@@ -269,10 +260,7 @@ a,b,c
 }
 
 func TestDecode_MapErrors(t *testing.T) {
-	data := `foo,bar,baz
-a,b,c
-`
-	d := NewDecoder(strings.NewReader(data))
+	d := NewDecoder(strings.NewReader(""))
 
 	var m map[string]string
 	if err := d.DecodeNext(m); err == nil {
