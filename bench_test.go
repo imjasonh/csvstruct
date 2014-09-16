@@ -3,6 +3,7 @@ package csvstruct
 import (
 	"encoding/csv"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"strings"
 	"testing"
@@ -10,7 +11,7 @@ import (
 )
 
 func BenchmarkDecode(b *testing.B) {
-	in := generateCSV(numRows)
+	in := generateCSV()
 	b.ResetTimer()
 	d := NewDecoder(in)
 	for i := 0; i < b.N; i++ {
@@ -27,13 +28,47 @@ func BenchmarkDecode(b *testing.B) {
 }
 
 func BenchmarkCSVRead(b *testing.B) {
-	in := generateCSV(numRows)
+	in := generateCSV()
 	b.ResetTimer()
 	r := csv.NewReader(in)
 	for i := 0; i < b.N; i++ {
 		if _, err := r.ReadAll(); err != nil {
 			b.Errorf("unexpected error: %v", err)
 			return
+		}
+	}
+}
+
+func BenchmarkEncode(b *testing.B) {
+	type row struct{ A, B, C string }
+	rows := []row{}
+	for i := 0; i < numRows; i++ {
+		rows = append(rows, row{randString(), randString(), randString()})
+	}
+	b.ResetTimer()
+
+	e := NewEncoder(ioutil.Discard)
+	for i := 0; i < b.N; i++ {
+		for _, r := range rows {
+			if err := e.EncodeNext(r); err != nil {
+				b.Errorf("unexpected error: %v", err)
+				return
+			}
+		}
+	}
+}
+
+func BenchmarkCSVWrite(b *testing.B) {
+	d := [][]string{}
+	for i := 0; i < numRows; i++ {
+		d = append(d, []string{randString(), randString(), randString()})
+	}
+	b.ResetTimer()
+
+	w := csv.NewWriter(ioutil.Discard)
+	for i := 0; i < b.N; i++ {
+		for _, r := range d {
+			w.Write(r)
 		}
 	}
 }
@@ -55,9 +90,9 @@ func randString() string {
 }
 
 // TODO: Generate the CSV on-demand instead of cramming it all into memory
-func generateCSV(rows int) io.Reader {
+func generateCSV() io.Reader {
 	rs := []string{"A,B,C"}
-	for i := 0; i < rows; i++ {
+	for i := 0; i < numRows; i++ {
 		rs = append(rs, strings.Join([]string{randString(), randString(), randString()}, ","))
 	}
 	return strings.NewReader(strings.Join(rs, "\n"))
