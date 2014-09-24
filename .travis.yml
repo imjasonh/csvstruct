@@ -5,7 +5,8 @@ go:
  - tip
 
 notifications:
-  recipients:
-    - imjasonh+travis@gmail.com
-  on_success: never
-  on_failure: change
+  email:
+    recipients:
+      - imjasonh+travis@gmail.com
+    on_success: never
+    on_failure: change
