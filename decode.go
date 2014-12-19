@@ -19,6 +19,11 @@ type Decoder interface {
 	// used as the header row to map CSV fields to struct fields, and the
 	// second row will be read to populate v.
 	DecodeNext(v interface{}) error
+
+	// Opts specifies options to modify decoding behavior.
+	//
+	// It returns the Decoder, to support chaining.
+	Opts(DecoderOpts) Decoder
 }
 
 // DecodeOpts specifies options to modify decoding behavior.
@@ -30,27 +35,26 @@ type DecoderOpts struct {
 }
 
 type decoder struct {
-	r    csv.Reader
-	hm   map[string]int
-	opts DecoderOpts
+	r  csv.Reader
+	hm map[string]int
 }
 
 // NewDecoder returns a Decoder that reads from r.
 func NewDecoder(r io.Reader) Decoder {
-	return NewDecoderOpts(r, DecoderOpts{})
+	csvr := csv.NewReader(r)
+	return &decoder{r: *csvr}
 }
 
-func NewDecoderOpts(r io.Reader, opts DecoderOpts) Decoder {
-	csvr := csv.NewReader(r)
+func (d *decoder) Opts(opts DecoderOpts) Decoder {
 	if opts.Comma != rune(0) {
-		csvr.Comma = opts.Comma
+		d.r.Comma = opts.Comma
 	}
 	if opts.Comment != rune(0) {
-		csvr.Comment = opts.Comment
+		d.r.Comment = opts.Comment
 	}
-	csvr.LazyQuotes = opts.LazyQuotes
-	csvr.TrimLeadingSpace = opts.TrimLeadingSpace
-	return &decoder{r: *csvr, opts: opts}
+	d.r.LazyQuotes = opts.LazyQuotes
+	d.r.TrimLeadingSpace = opts.TrimLeadingSpace
+	return d
 }
 
 func (d *decoder) DecodeNext(v interface{}) error {

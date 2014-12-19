@@ -134,7 +134,7 @@ d,e,f
 		"A,B,C\r\na,b,c\r\nd,e,f\r\n",
 	}} {
 		var buf bytes.Buffer
-		e := NewEncoderOpts(&buf, c.opts)
+		e := NewEncoder(&buf).Opts(c.opts)
 		for _, r := range rows {
 			if err := e.EncodeNext(r); err != nil {
 				t.Errorf("unexpected error: %v", err)

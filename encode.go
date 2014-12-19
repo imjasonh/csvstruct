@@ -17,6 +17,11 @@ type Encoder interface {
 	// On the first call to EncodeNext, v's fields will be used to write the
 	// header row, then v's values will be written as the second row.
 	EncodeNext(v interface{}) error
+
+	// Opts specifies options to modify encoding behavior.
+	//
+	// It returns the Encoder, to support chaining.
+	Opts(EncodeOpts) Encoder
 }
 
 // EncodeOpts specifies options to modify encoding behavior.
@@ -34,17 +39,17 @@ type encoder struct {
 
 // NewEncoder returns an encoder that writes to w.
 func NewEncoder(w io.Writer) Encoder {
-	return NewEncoderOpts(w, EncodeOpts{})
+	csvw := csv.NewWriter(w)
+	return &encoder{w: *csvw}
 }
 
-// NewEncoderOpts returns an encoder that writes to w, with options.
-func NewEncoderOpts(w io.Writer, opts EncodeOpts) Encoder {
-	csvw := csv.NewWriter(w)
+func (e *encoder) Opts(opts EncodeOpts) Encoder {
 	if opts.Comma != rune(0) {
-		csvw.Comma = opts.Comma
+		e.w.Comma = opts.Comma
 	}
-	csvw.UseCRLF = opts.UseCRLF
-	return &encoder{w: *csvw, opts: opts}
+	e.w.UseCRLF = opts.UseCRLF
+	e.opts = opts
+	return e
 }
 
 func (e *encoder) EncodeNext(v interface{}) error {

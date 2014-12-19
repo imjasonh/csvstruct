@@ -216,7 +216,7 @@ d,,f
 	d,"",f
 `,
 	}} {
-		d := NewDecoderOpts(strings.NewReader(c.data), c.opts)
+		d := NewDecoder(strings.NewReader(c.data)).Opts(c.opts)
 		rows := []row{}
 		var r row
 		for {
