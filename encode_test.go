@@ -22,15 +22,15 @@ d,e,f
 	}, {
 		[]interface{}{row{"a", "", ""}, row{"", "b", ""}},
 		`Foo,Bar,Baz
-a,"",""
-"",b,""
+a,,
+,b,
 `,
 	}, {
 		// Encoding incomplete structs still fills in missing columns.
 		[]interface{}{row{"a", "", ""}, struct{ Foo, Bar string }{"", "b"}},
 		`Foo,Bar,Baz
-a,"",""
-"",b,""
+a,,
+,b,
 `,
 	}, {
 		// Encoding unexported fields.
@@ -82,7 +82,7 @@ a,b,d
 			struct{ Bar, Baz string }{"bar", "baz"}}, // Only shares Bar, only writes Bar.
 		`Foo,Bar
 foo,bar
-"",bar
+,bar
 `,
 	}, {
 		// Encoding rows with the same fields but with different types.
@@ -182,7 +182,7 @@ a
 			"foo": true,
 		}},
 		`foo
-""
+
 true
 `,
 	}} {
