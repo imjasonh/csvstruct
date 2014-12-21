@@ -3,9 +3,11 @@ package csvstruct
 import (
 	"fmt"
 	"io"
+	"net"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDecode(t *testing.T) {
@@ -277,6 +279,27 @@ a,b
 	m2 := map[string]int{}
 	if err := d.DecodeNext(m2); err == nil {
 		t.Errorf("expected error")
+	}
+}
+
+// Tests that values that implement encoding.TextUnarshaler are correctly unmarshaled.
+func TestDecode_TextUnmarshaler(t *testing.T) {
+	d := NewDecoder(strings.NewReader(`T,N
+2009-02-13T18:31:30-05:00,128.0.0.1
+`))
+
+	var s struct {
+		T *time.Time
+		N *net.IP
+	}
+	if err := d.DecodeNext(&s); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if exp := time.Unix(1234567890, 0); *s.T != exp {
+		t.Errorf("unexpected result, got %v want %v", s.T, exp)
+	}
+	if exp := net.IPv4(128, 0, 0, 1); !exp.Equal(*s.N) {
+		t.Errorf("unexpected result, got %v want %v", s.N, exp)
 	}
 }
 

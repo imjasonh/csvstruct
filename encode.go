@@ -1,6 +1,7 @@
 package csvstruct
 
 import (
+	"encoding"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"reflect"
 	"sort"
 )
+
+var textMarshalerType = reflect.TypeOf(new(encoding.TextMarshaler)).Elem()
 
 // Encoder encodes and writes CSV rows to an output stream.
 type Encoder interface {
@@ -171,6 +174,19 @@ func (e *encoder) encodeStruct(v interface{}) error {
 
 		add = true
 		vf := rv.Field(i)
+
+		if vf.Type().Implements(textMarshalerType) {
+			if tm, ok := vf.Interface().(encoding.TextMarshaler); ok {
+				b, err := tm.MarshalText()
+				if err != nil {
+					return err
+				}
+				row[fi] = string(b)
+				continue
+			} else {
+				panic("unreachable")
+			}
+		}
 		switch vf.Kind() {
 		case reflect.String:
 			row[fi] = vf.String()
@@ -183,7 +199,7 @@ func (e *encoder) encodeStruct(v interface{}) error {
 		case reflect.Bool:
 			row[fi] = fmt.Sprintf("%t", vf.Bool())
 		default:
-			return fmt.Errorf("can't decode type %v", f.Type)
+			return fmt.Errorf("can't encode type %v", f.Type)
 		}
 	}
 	if !add {

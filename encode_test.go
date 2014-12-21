@@ -2,7 +2,9 @@ package csvstruct
 
 import (
 	"bytes"
+	"net"
 	"testing"
+	"time"
 )
 
 func TestEncodeNext(t *testing.T) {
@@ -103,8 +105,7 @@ true
 				t.Errorf("unexpected error: %v", err)
 			}
 		}
-		got := buf.String()
-		if got != c.exp {
+		if got := buf.String(); got != c.exp {
 			t.Errorf("unexpected result encoding %+v, got %s, want %s", c.rows, got, c.exp)
 		}
 	}
@@ -140,8 +141,7 @@ d,e,f
 				t.Errorf("unexpected error: %v", err)
 			}
 		}
-		got := buf.String()
-		if got != c.exp {
+		if got := buf.String(); got != c.exp {
 			t.Errorf("unexpected results encoding %+v, got %s, want %s", rows, got, c.exp)
 		}
 	}
@@ -193,8 +193,7 @@ true
 				t.Errorf("unexpected error: %v", err)
 			}
 		}
-		got := buf.String()
-		if got != c.exp {
+		if got := buf.String(); got != c.exp {
 			t.Errorf("unexpected results encoding %+v, got %s, want %s", c.rows, got, c.exp)
 		}
 	}
@@ -222,8 +221,26 @@ func TestEncode_Hybrid(t *testing.T) {
 a,b
 c,d
 `
-	got := buf.String()
-	if got != exp {
+	if got := buf.String(); got != exp {
+		t.Errorf("unexpected results, got %s, want %s", got, exp)
+	}
+}
+
+// Tests that values that implement encoding.TextMarshaler are correctly marshaled.
+func TestEncode_TextMarshaler(t *testing.T) {
+	var buf bytes.Buffer
+	e := NewEncoder(&buf)
+	s := struct {
+		T time.Time
+		N net.IP
+	}{time.Unix(1234567890, 0), net.IPv4(128, 0, 0, 1)}
+	if err := e.EncodeNext(s); err != nil {
+		t.Errorf("unexpected err: %v", err)
+	}
+	exp := `T,N
+2009-02-13T18:31:30-05:00,128.0.0.1
+`
+	if got := buf.String(); got != exp {
 		t.Errorf("unexpected results, got %s, want %s", got, exp)
 	}
 }

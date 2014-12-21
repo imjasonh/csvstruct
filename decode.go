@@ -2,6 +2,7 @@
 package csvstruct
 
 import (
+	"encoding"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -9,6 +10,8 @@ import (
 	"reflect"
 	"strconv"
 )
+
+var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 
 // Decoder reads and decodes CSV rows from an input stream.
 type Decoder interface {
@@ -127,6 +130,20 @@ func (d *decoder) decodeStruct(v interface{}, line []string) error {
 		strv := line[idx]
 		vf := rv.FieldByName(f.Name)
 		if vf.CanSet() {
+			if vf.CanInterface() && vf.Type().Implements(textUnmarshalerType) {
+				if vf.IsNil() {
+					vf.Set(reflect.New(vf.Type().Elem()))
+				}
+				if tu, ok := vf.Interface().(encoding.TextUnmarshaler); ok {
+					if err := tu.UnmarshalText([]byte(strv)); err != nil {
+						return err
+					}
+					continue
+				} else {
+					panic("unreachable")
+				}
+			}
+
 			switch vf.Kind() {
 			case reflect.String:
 				vf.SetString(strv)
