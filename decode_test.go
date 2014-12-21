@@ -284,9 +284,10 @@ a,b
 
 // Tests that values that implement encoding.TextUnarshaler are correctly unmarshaled.
 func TestDecode_TextUnmarshaler(t *testing.T) {
-	d := NewDecoder(strings.NewReader(`T,N
-2009-02-13T18:31:30-05:00,128.0.0.1
-`))
+	tm := time.Unix(1234567890, 0)
+	d := NewDecoder(strings.NewReader(fmt.Sprintf(`T,N
+%s,128.0.0.1
+`, tm.Format(time.RFC3339))))
 
 	var s struct {
 		T *time.Time
@@ -295,8 +296,8 @@ func TestDecode_TextUnmarshaler(t *testing.T) {
 	if err := d.DecodeNext(&s); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if exp := time.Unix(1234567890, 0); *s.T != exp {
-		t.Errorf("unexpected result, got %v want %v", s.T, exp)
+	if *s.T != tm {
+		t.Errorf("unexpected result, got %v want %v", s.T, tm)
 	}
 	if exp := net.IPv4(128, 0, 0, 1); !exp.Equal(*s.N) {
 		t.Errorf("unexpected result, got %v want %v", s.N, exp)
