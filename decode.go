@@ -26,11 +26,11 @@ type Decoder interface {
 	// Opts specifies options to modify decoding behavior.
 	//
 	// It returns the Decoder, to support chaining.
-	Opts(DecoderOpts) Decoder
+	Opts(DecodeOpts) Decoder
 }
 
 // DecodeOpts specifies options to modify decoding behavior.
-type DecoderOpts struct {
+type DecodeOpts struct {
 	Comma            rune // field delimiter (set to ',' by default)
 	Comment          rune // comment character for start of line
 	LazyQuotes       bool // allow lazy quotes
@@ -48,7 +48,7 @@ func NewDecoder(r io.Reader) Decoder {
 	return &decoder{r: *csvr}
 }
 
-func (d *decoder) Opts(opts DecoderOpts) Decoder {
+func (d *decoder) Opts(opts DecodeOpts) Decoder {
 	if opts.Comma != rune(0) {
 		d.r.Comma = opts.Comma
 	}

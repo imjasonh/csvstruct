@@ -189,16 +189,16 @@ func TestDecode_Opts(t *testing.T) {
 	exp := []row{{"a", "b", "c"}, {"d", "", "f"}}
 
 	for _, c := range []struct {
-		opts DecoderOpts
+		opts DecodeOpts
 		data string
 	}{{
-		DecoderOpts{Comma: '%'},
+		DecodeOpts{Comma: '%'},
 		`A%B%C
 a%b%c
 d%""%f
 `,
 	}, {
-		DecoderOpts{Comment: '$'},
+		DecodeOpts{Comment: '$'},
 		`A,B,C
 $comment
 a,b,c
@@ -207,13 +207,13 @@ d,"",f
 $comment
 `,
 	}, {
-		DecoderOpts{LazyQuotes: true},
+		DecodeOpts{LazyQuotes: true},
 		`A,B,C
 a,b,c
 d,,f
 `,
 	}, {
-		DecoderOpts{TrimLeadingSpace: true},
+		DecodeOpts{TrimLeadingSpace: true},
 		`A,B,C
   a,b,c
 	d,"",f
