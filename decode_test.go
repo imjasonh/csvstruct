@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestDecode(t *testing.T) {
@@ -284,20 +283,12 @@ a,b
 
 // Tests that values that implement encoding.TextUnarshaler are correctly unmarshaled.
 func TestDecode_TextUnmarshaler(t *testing.T) {
-	tm := time.Unix(1234567890, 0)
-	d := NewDecoder(strings.NewReader(fmt.Sprintf(`T,N
-%s,128.0.0.1
-`, tm.Format(time.RFC3339))))
-
-	var s struct {
-		T *time.Time
-		N *net.IP
-	}
+	d := NewDecoder(strings.NewReader(`N
+128.0.0.1
+`))
+	var s struct{ N *net.IP }
 	if err := d.DecodeNext(&s); err != nil {
 		t.Errorf("unexpected error: %v", err)
-	}
-	if *s.T != tm {
-		t.Errorf("unexpected result, got %v want %v", s.T, tm)
 	}
 	if exp := net.IPv4(128, 0, 0, 1); !exp.Equal(*s.N) {
 		t.Errorf("unexpected result, got %v want %v", s.N, exp)

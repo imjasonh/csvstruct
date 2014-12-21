@@ -2,10 +2,8 @@ package csvstruct
 
 import (
 	"bytes"
-	"fmt"
 	"net"
 	"testing"
-	"time"
 )
 
 func TestEncodeNext(t *testing.T) {
@@ -231,16 +229,13 @@ c,d
 func TestEncode_TextMarshaler(t *testing.T) {
 	var buf bytes.Buffer
 	e := NewEncoder(&buf)
-	s := struct {
-		T time.Time
-		N net.IP
-	}{time.Unix(1234567890, 0), net.IPv4(128, 0, 0, 1)}
+	s := struct{ N net.IP }{net.IPv4(128, 0, 0, 1)}
 	if err := e.EncodeNext(s); err != nil {
 		t.Errorf("unexpected err: %v", err)
 	}
-	exp := fmt.Sprintf(`T,N
-%s,128.0.0.1
-`, s.T.Format(time.RFC3339))
+	exp := `N
+128.0.0.1
+`
 	if got := buf.String(); got != exp {
 		t.Errorf("unexpected results, got %s, want %s", got, exp)
 	}
