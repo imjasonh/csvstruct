@@ -13,7 +13,7 @@ func TestEncodeNext(t *testing.T) {
 
 	for _, c := range []struct {
 		rows []interface{}
-		exp  string
+		want string
 	}{{
 		[]interface{}{row{"a", "b", "c"}, row{"d", "e", "f"}},
 		`Foo,Bar,Baz
@@ -104,8 +104,8 @@ true
 				t.Errorf("unexpected error: %v", err)
 			}
 		}
-		if got := buf.String(); got != c.exp {
-			t.Errorf("unexpected result encoding %+v, got %s, want %s", c.rows, got, c.exp)
+		if got := buf.String(); got != c.want {
+			t.Errorf("unexpected result encoding %+v, got %s, want %s", c.rows, got, c.want)
 		}
 	}
 }
@@ -117,7 +117,7 @@ func TestEncode_Opts(t *testing.T) {
 
 	for _, c := range []struct {
 		opts EncodeOpts
-		exp  string
+		want string
 	}{{
 		EncodeOpts{Comma: '%'},
 		`A%B%C
@@ -140,8 +140,8 @@ d,e,f
 				t.Errorf("unexpected error: %v", err)
 			}
 		}
-		if got := buf.String(); got != c.exp {
-			t.Errorf("unexpected results encoding %+v, got %s, want %s", rows, got, c.exp)
+		if got := buf.String(); got != c.want {
+			t.Errorf("unexpected results encoding %+v, got %s, want %s", rows, got, c.want)
 		}
 	}
 }
@@ -149,7 +149,7 @@ d,e,f
 func TestEncode_Map(t *testing.T) {
 	for _, c := range []struct {
 		rows []map[string]interface{}
-		exp  string
+		want string
 	}{{
 		[]map[string]interface{}{{
 			"foo": "a",
@@ -194,8 +194,8 @@ true
 				t.Errorf("unexpected error: %v", err)
 			}
 		}
-		if got := buf.String(); got != c.exp {
-			t.Errorf("unexpected results encoding %+v, got %s, want %s", c.rows, got, c.exp)
+		if got := buf.String(); got != c.want {
+			t.Errorf("unexpected results encoding %+v, got %s, want %s", c.rows, got, c.want)
 		}
 	}
 }
@@ -216,14 +216,14 @@ func TestEncode_Hybrid(t *testing.T) {
 		"Bar": "d",
 	}
 	if err := e.EncodeNext(m); err != nil {
-		t.Errorf("unexpected err: %v", err)
+		t.Errorf("unexpected error: %v", err)
 	}
-	exp := `foo,Bar
+	want := `foo,Bar
 a,b
 c,d
 `
-	if got := buf.String(); got != exp {
-		t.Errorf("unexpected results, got %s, want %s", got, exp)
+	if got := buf.String(); got != want {
+		t.Errorf("unexpected results, got %s, want %s", got, want)
 	}
 }
 
@@ -233,12 +233,32 @@ func TestEncode_TextMarshaler(t *testing.T) {
 	e := NewEncoder(&buf)
 	s := struct{ N net.IP }{ip}
 	if err := e.EncodeNext(s); err != nil {
-		t.Errorf("unexpected err: %v", err)
+		t.Errorf("unexpected error: %v", err)
 	}
-	exp := `N
+	want := `N
 128.0.0.1
 `
-	if got := buf.String(); got != exp {
-		t.Errorf("unexpected results, got %s, want %s", got, exp)
+	if got := buf.String(); got != want {
+		t.Errorf("unexpected results, got %s, want %s", got, want)
+	}
+}
+
+// Tests that structs with pointer fields are encoded correctly.
+func TestEncode_Ptrs(t *testing.T) {
+	var buf bytes.Buffer
+	e := NewEncoder(&buf)
+	bar := "bar"
+	s := struct {
+		S  string
+		SP *string
+	}{bar, &bar}
+	if err := e.EncodeNext(s); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	want := `S,SP
+bar,bar
+`
+	if got := buf.String(); got != want {
+		t.Errorf("unexpected results, got %s, want %s", got, want)
 	}
 }

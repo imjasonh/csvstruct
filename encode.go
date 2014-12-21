@@ -187,6 +187,9 @@ func (e *encoder) encodeStruct(v interface{}) error {
 				panic("unreachable")
 			}
 		}
+		if vf.Kind() == reflect.Ptr {
+			vf = vf.Elem()
+		}
 		switch vf.Kind() {
 		case reflect.String:
 			row[fi] = vf.String()
