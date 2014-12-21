@@ -9,6 +9,8 @@ import (
 	"testing"
 )
 
+var ip = net.IPv4(128, 0, 0, 1)
+
 func TestDecode(t *testing.T) {
 	type row struct {
 		Foo, Bar, Baz string
@@ -290,8 +292,8 @@ func TestDecode_TextUnmarshaler(t *testing.T) {
 	if err := d.DecodeNext(&s); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if exp := net.IPv4(128, 0, 0, 1); !exp.Equal(*s.N) {
-		t.Errorf("unexpected result, got %v want %v", s.N, exp)
+	if !ip.Equal(*s.N) {
+		t.Errorf("unexpected result, got %v want %v", s.N, ip)
 	}
 }
 

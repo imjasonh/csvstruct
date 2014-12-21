@@ -155,15 +155,17 @@ func TestEncode_Map(t *testing.T) {
 			"foo": "a",
 			"bar": true,
 			"baz": 1.23,
+			"ip":  ip,
 		}, {
 			"foo": "b",
 			"bar": false,
 			"baz": 4.56,
+			"ip":  ip,
 		}},
 		// Keys are sorted before being written to the header
-		`bar,baz,foo
-true,1.23,a
-false,4.56,b
+		`bar,baz,foo,ip
+true,1.23,a,128.0.0.1
+false,4.56,b,128.0.0.1
 `,
 	}, {
 		[]map[string]interface{}{{
@@ -229,7 +231,7 @@ c,d
 func TestEncode_TextMarshaler(t *testing.T) {
 	var buf bytes.Buffer
 	e := NewEncoder(&buf)
-	s := struct{ N net.IP }{net.IPv4(128, 0, 0, 1)}
+	s := struct{ N net.IP }{ip}
 	if err := e.EncodeNext(s); err != nil {
 		t.Errorf("unexpected err: %v", err)
 	}
