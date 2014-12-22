@@ -166,7 +166,7 @@ a,`, row{"a", nil},
 			t.Errorf("unexpected error: %v", err)
 		}
 		if !reflect.DeepEqual(r, c.want) {
-			t.Errorf("unexpected results, got %v, want %v", r, c.want)
+			t.Errorf("DecodeNext(%q): unexpected results, got %v, want %v", c.s, r, c.want)
 		}
 	}
 }

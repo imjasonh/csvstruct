@@ -120,10 +120,11 @@ func (d *decoder) decodeStruct(v interface{}, line []string) error {
 		omitempty := false
 		if tag := f.Tag.Get("csv"); tag != "" {
 			parts := strings.Split(tag, ",")
-			if parts[0] == "-" {
+			if tagn := parts[0]; tag == "-" {
 				continue
+			} else if tagn != "" {
+				n = tagn
 			}
-			n = parts[0]
 			omitempty = len(parts) > 1 && parts[1] == "omitempty"
 		}
 		idx, ok := d.hm[n]
