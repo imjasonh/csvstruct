@@ -20,7 +20,7 @@ func BenchmarkDecode(b *testing.B) {
 			if err := d.DecodeNext(&r); err == io.EOF {
 				break
 			} else if err != nil {
-				b.Errorf("unexpected error: %v", err)
+				b.Errorf("DecodeNext(%q): %v", in, err)
 				return
 			}
 		}
@@ -33,7 +33,7 @@ func BenchmarkCSVRead(b *testing.B) {
 	r := csv.NewReader(in)
 	for i := 0; i < b.N; i++ {
 		if _, err := r.ReadAll(); err != nil {
-			b.Errorf("unexpected error: %v", err)
+			b.Errorf("ReadAll(%q): %v", in, err)
 			return
 		}
 	}
@@ -51,7 +51,7 @@ func BenchmarkEncode(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, r := range rows {
 			if err := e.EncodeNext(r); err != nil {
-				b.Errorf("unexpected error: %v", err)
+				b.Errorf("EncodeNext(%v): %v", r, err)
 				return
 			}
 		}
@@ -68,7 +68,10 @@ func BenchmarkCSVWrite(b *testing.B) {
 	w := csv.NewWriter(ioutil.Discard)
 	for i := 0; i < b.N; i++ {
 		for _, r := range d {
-			w.Write(r)
+			if err := w.Write(r); err != nil {
+				b.Errorf("Write(%v): %v", r, err)
+				return
+			}
 		}
 	}
 }

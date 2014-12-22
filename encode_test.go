@@ -3,8 +3,14 @@ package csvstruct
 import (
 	"bytes"
 	"net"
+	"strings"
 	"testing"
 )
+
+// Accounts for changes between Go 1.3 and 1.4 that changed how encoding/csv encodes empty strings
+// See https://github.com/golang/go/commit/6ad2749dcd614270ac58c5254b6ada3bce0af090
+// Set this to true if tests are failing against Go 1.3 or before
+const backcompat = false
 
 func TestEncodeNext(t *testing.T) {
 	type row struct {
@@ -28,7 +34,7 @@ a,,
 `,
 	}, {
 		// Encoding incomplete structs still fills in missing columns.
-		[]interface{}{row{"a", "", ""}, struct{ Foo, Bar string }{"", "b"}},
+		[]interface{}{row{Foo: "a"}, struct{ Foo, Bar string }{Bar: "b"}},
 		`Foo,Bar,Baz
 a,,
 ,b,
@@ -101,11 +107,15 @@ true
 		e := NewEncoder(&buf)
 		for _, r := range c.rows {
 			if err := e.EncodeNext(r); err != nil {
-				t.Errorf("unexpected error: %v", err)
+				t.Errorf("EncodeNext(%v): %v", r, err)
 			}
 		}
-		if got := buf.String(); got != c.want {
-			t.Errorf("unexpected result encoding %+v, got %s, want %s", c.rows, got, c.want)
+		got := buf.String()
+		if backcompat {
+			got = strings.Replace(got, `""`, "", -1)
+		}
+		if got != c.want {
+			t.Errorf("EncodeNext(%v): got %s, want %s", c.rows, got, c.want)
 		}
 	}
 }
@@ -137,11 +147,11 @@ d,e,f
 		e := NewEncoder(&buf).Opts(c.opts)
 		for _, r := range rows {
 			if err := e.EncodeNext(r); err != nil {
-				t.Errorf("unexpected error: %v", err)
+				t.Errorf("EncodeNext(%v): %v", r, err)
 			}
 		}
 		if got := buf.String(); got != c.want {
-			t.Errorf("unexpected results encoding %+v, got %s, want %s", rows, got, c.want)
+			t.Errorf("EncodeNext(%v): got %s, want %s", rows, got, c.want)
 		}
 	}
 }
@@ -191,11 +201,15 @@ true
 		e := NewEncoder(&buf)
 		for _, r := range c.rows {
 			if err := e.EncodeNext(r); err != nil {
-				t.Errorf("unexpected error: %v", err)
+				t.Errorf("EncodeNext(%v): %v", r, err)
 			}
 		}
-		if got := buf.String(); got != c.want {
-			t.Errorf("unexpected results encoding %+v, got %s, want %s", c.rows, got, c.want)
+		got := buf.String()
+		if backcompat {
+			got = strings.Replace(got, `""`, "", -1)
+		}
+		if got != c.want {
+			t.Errorf("EncodeNext(%v): got %s, want %s", c.rows, got, c.want)
 		}
 	}
 }
@@ -209,21 +223,21 @@ func TestEncode_Hybrid(t *testing.T) {
 		Bar string
 	}{"a", "b"}
 	if err := e.EncodeNext(s); err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Errorf("EncodeNext(%v): %v", r, err)
 	}
 	m := map[string]interface{}{
 		"foo": "c",
 		"Bar": "d",
 	}
 	if err := e.EncodeNext(m); err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Errorf("EncodeNext(%v): %v", r, err)
 	}
 	want := `foo,Bar
 a,b
 c,d
 `
 	if got := buf.String(); got != want {
-		t.Errorf("unexpected results, got %s, want %s", got, want)
+		t.Errorf("EncodeNext(%v): got %s, want %s", m, got, want)
 	}
 }
 
@@ -231,15 +245,15 @@ c,d
 func TestEncode_TextMarshaler(t *testing.T) {
 	var buf bytes.Buffer
 	e := NewEncoder(&buf)
-	s := struct{ N net.IP }{ip}
-	if err := e.EncodeNext(s); err != nil {
-		t.Errorf("unexpected error: %v", err)
+	r := struct{ N net.IP }{ip}
+	if err := e.EncodeNext(r); err != nil {
+		t.Errorf("EncodeNext(%v): %v", r, err)
 	}
 	want := `N
 128.0.0.1
 `
 	if got := buf.String(); got != want {
-		t.Errorf("unexpected results, got %s, want %s", got, want)
+		t.Errorf("EncodeNext(%v): got %s, want %s", r, got, want)
 	}
 }
 
@@ -253,12 +267,12 @@ func TestEncode_Ptrs(t *testing.T) {
 		SP *string
 	}{bar, &bar}
 	if err := e.EncodeNext(s); err != nil {
-		t.Errorf("unexpected error: %v", err)
+		t.Errorf("EncodeNext(%v): %v", r, err)
 	}
 	want := `S,SP
 bar,bar
 `
 	if got := buf.String(); got != want {
-		t.Errorf("unexpected results, got %s, want %s", got, want)
+		t.Errorf("EncodeNext(%v): got %s, want %s", s, got, want)
 	}
 }
