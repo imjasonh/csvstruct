@@ -3,6 +3,7 @@ package csvstruct
 import (
 	"bytes"
 	"io"
+	"net"
 	"reflect"
 	"testing"
 )
@@ -13,9 +14,13 @@ func TestRoundTrip(t *testing.T) {
 		Renamed    string `csv:"renamerized"`
 		Int64      int64
 		unexported string
+		StringPtr  *string
+		IP         *net.IP
 	}
+	s := "foo"
+	ip := net.IPv4(128, 0, 0, 1)
 
-	in := []row{{"a", "b", 123, "ignored"}, {"c", "d", 456, "ignored"}}
+	in := []row{{"a", "b", 123, "ignored", &s, &ip}, {"c", "d", 456, "ignored", &s, &ip}}
 
 	var buf bytes.Buffer
 	e := NewEncoder(&buf)
@@ -24,13 +29,13 @@ func TestRoundTrip(t *testing.T) {
 			t.Errorf("unexpected error encoding %v: %v", i, err)
 		}
 	}
-	exp := `String,renamerized,Int64
-a,b,123
-c,d,456
+	want := `String,renamerized,Int64,StringPtr,IP
+a,b,123,foo,128.0.0.1
+c,d,456,foo,128.0.0.1
 `
 	got := buf.String()
-	if got != exp {
-		t.Errorf("unexpected result, got %s, want %s", got, exp)
+	if got != want {
+		t.Errorf("unexpected result, got %s, want %s", got, want)
 	}
 
 	out := []row{}
@@ -48,9 +53,9 @@ c,d,456
 		t.Errorf("decoder unexpectedly not done")
 	}
 	// Unexported fields will not survive the roundtrip
-	expRows := []row{{"a", "b", 123, ""}, {"c", "d", 456, ""}}
-	if !reflect.DeepEqual(expRows, out) {
-		t.Errorf("got unexpected result, got %v, want %v", out, expRows)
+	wantRows := []row{{"a", "b", 123, "", &s, &ip}, {"c", "d", 456, "", &s, &ip}}
+	if !reflect.DeepEqual(wantRows, out) {
+		t.Errorf("got unexpected result, got %v, want %v", out, wantRows)
 	}
 
 }

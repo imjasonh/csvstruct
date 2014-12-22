@@ -18,33 +18,33 @@ func TestDecode(t *testing.T) {
 
 	for _, c := range []struct {
 		data string
-		out  []row
+		want []row
 	}{{
 		data: `Foo,Bar,Baz
 a,b,c
 d,e,f
 `,
-		out: []row{{"a", "b", "c"}, {"d", "e", "f"}},
+		want: []row{{"a", "b", "c"}, {"d", "e", "f"}},
 	}, {
 		// Rows that only have partial data are only partially filled.
 		data: `Foo,Bar,Baz
 a,"",""
 "",b,""
 `,
-		out: []row{{"a", "", ""}, {"", "b", ""}},
+		want: []row{{"a", "", ""}, {"", "b", ""}},
 	}, {
 		// Rows that don't define all the columns are partially filled.
 		data: `Foo,Bar
 a,""
 "",b
 `,
-		out: []row{{"a", "", ""}, {"", "b", ""}},
+		want: []row{{"a", "", ""}, {"", "b", ""}},
 	}, {
 		// Entirely disjoint columns produce empty structs.
 		data: `Qux
 d
 `,
-		out: []row{{}},
+		want: []row{{}},
 	}} {
 		d := NewDecoder(strings.NewReader(c.data))
 		rows := []row{}
@@ -58,8 +58,8 @@ d
 			}
 			rows = append(rows, r)
 		}
-		if !reflect.DeepEqual(rows, c.out) {
-			t.Errorf("unexpected result, got %v, want %v", rows, c.out)
+		if !reflect.DeepEqual(rows, c.want) {
+			t.Errorf("unexpected result, got %v, want %v", rows, c.want)
 		}
 		if !isDone(d) {
 			t.Errorf("decoder unexpectedly not done")
@@ -76,9 +76,9 @@ func TestDecode_Unexported(t *testing.T) {
 a,b`)).DecodeNext(&r); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	exp := row{Exported: "a"}
-	if r != exp {
-		t.Errorf("unexpected result, got %v, want %v", r, exp)
+	want := row{Exported: "a"}
+	if r != want {
+		t.Errorf("unexpected result, got %v, want %v", r, want)
 	}
 }
 
@@ -93,9 +93,9 @@ func TestDecode_Tags(t *testing.T) {
 a,b,c`)).DecodeNext(&r); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	exp := row{"a", "b", ""}
-	if r != exp {
-		t.Errorf("unexpected results, got %v, want %v", r, exp)
+	want := row{"a", "b", ""}
+	if r != want {
+		t.Errorf("unexpected results, got %v, want %v", r, want)
 	}
 }
 
@@ -112,9 +112,9 @@ func TestDecode_NonStrings(t *testing.T) {
 123,-123456789,123456789,123.456,true`)).DecodeNext(&r); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	exp := row{123, -123456789, 123456789, 123.456, true}
-	if r != exp {
-		t.Errorf("unexpected results, got %v, want %v", r, exp)
+	want := row{123, -123456789, 123456789, 123.456, true}
+	if r != want {
+		t.Errorf("unexpected results, got %v, want %v", r, want)
 	}
 }
 
@@ -146,18 +146,28 @@ func TestDecode_CompatibleTypes(t *testing.T) {
 }
 
 func TestDecode_Pointers(t *testing.T) {
-	t.Skip("pointers are not yet supported")
 	type row struct {
 		S  string
-		SP *string
+		SP *string `csv:",omitempty"`
 	}
-	var r row
-	if err := NewDecoder(strings.NewReader(`S,SP
-a,b`)).DecodeNext(&r); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if r.S != "a" || r.SP == nil || *r.SP != "b" {
-		t.Errorf("unexpected results, got %v", r)
+	b := "b"
+	for _, c := range []struct {
+		s    string
+		want row
+	}{{
+		`S,SP
+a,b`, row{"a", &b},
+	}, {
+		`S,SP
+a,`, row{"a", nil},
+	}} {
+		var r row
+		if err := NewDecoder(strings.NewReader(c.s)).DecodeNext(&r); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		if !reflect.DeepEqual(r, c.want) {
+			t.Errorf("unexpected results, got %v, want %v", r, c.want)
+		}
 	}
 }
 
@@ -175,9 +185,9 @@ a,b`))
 	if err := d.DecodeNext(&r); err != nil {
 		t.Errorf("unexpected error decoding after skip: %v", err)
 	}
-	exp := row{"a", "b"}
-	if r != exp {
-		t.Errorf("unexpected result, got %v, want %v", r, exp)
+	want := row{"a", "b"}
+	if r != want {
+		t.Errorf("unexpected result, got %v, want %v", r, want)
 	}
 	if !isDone(d) {
 		t.Errorf("decoder unexpectedly not done")
@@ -186,7 +196,7 @@ a,b`))
 
 func TestDecode_Opts(t *testing.T) {
 	type row struct{ A, B, C string }
-	exp := []row{{"a", "b", "c"}, {"d", "", "f"}}
+	want := []row{{"a", "b", "c"}, {"d", "", "f"}}
 
 	for _, c := range []struct {
 		opts DecodeOpts
@@ -231,8 +241,8 @@ d,,f
 			}
 			rows = append(rows, r)
 		}
-		if !reflect.DeepEqual(rows, exp) {
-			t.Errorf("unexpected result, got %v, want %v", rows, exp)
+		if !reflect.DeepEqual(rows, want) {
+			t.Errorf("unexpected result, got %v, want %v", rows, want)
 		}
 		if !isDone(d) {
 			t.Errorf("decoder unexpectedly not done")
@@ -244,7 +254,7 @@ func TestDecode_Map(t *testing.T) {
 	data := `foo,bar,baz
 a,b,c
 `
-	exp := map[string]string{
+	want := map[string]string{
 		"foo": "a",
 		"bar": "b",
 		"baz": "c",
@@ -254,8 +264,8 @@ a,b,c
 	if err := d.DecodeNext(&got); err != nil {
 		t.Errorf("%v", err)
 	}
-	if !reflect.DeepEqual(got, exp) {
-		t.Errorf("unexpected result, got %v, want %v", got, exp)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("unexpected result, got %v, want %v", got, want)
 	}
 	if !isDone(d) {
 		t.Errorf("decoder unexpectedly not done")

@@ -9,6 +9,7 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
@@ -116,11 +117,14 @@ func (d *decoder) decodeStruct(v interface{}, line []string) error {
 			continue
 		}
 		n := f.Name
-		if f.Tag.Get("csv") != "" {
-			n = f.Tag.Get("csv")
-			if n == "-" {
+		omitempty := false
+		if tag := f.Tag.Get("csv"); tag != "" {
+			parts := strings.Split(tag, ",")
+			if parts[0] == "-" {
 				continue
 			}
+			n = parts[0]
+			omitempty = len(parts) > 1 && parts[1] == "omitempty"
 		}
 		idx, ok := d.hm[n]
 		if !ok {
@@ -142,6 +146,15 @@ func (d *decoder) decodeStruct(v interface{}, line []string) error {
 				} else {
 					panic("unreachable")
 				}
+			}
+			if vf.Kind() == reflect.Ptr {
+				if omitempty && strv == "" {
+					continue
+				}
+				if vf.IsNil() {
+					vf.Set(reflect.New(vf.Type().Elem()))
+				}
+				vf = vf.Elem()
 			}
 
 			switch vf.Kind() {
