@@ -78,7 +78,7 @@ func (e *encoder) encodeMap(v interface{}) error {
 	if e.hm == nil {
 		e.hm = make(map[string]int)
 		headers := []string{}
-		for k, _ := range m {
+		for k := range m {
 			headers = append(headers, k)
 		}
 		sort.Strings(headers)
