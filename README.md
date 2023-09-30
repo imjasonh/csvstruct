@@ -1,5 +1,5 @@
-[![GoDoc](https://godoc.org/github.com/ImJasonH/csvstruct?status.png)](https://godoc.org/github.com/ImJasonH/csvstruct)
-[![Build Status](https://travis-ci.org/ImJasonH/csvstruct.svg?branch=master)](https://travis-ci.org/ImJasonH/csvstruct)
+[![GoDoc](https://godoc.org/github.com/imjasonh/csvstruct?status.png)](https://godoc.org/github.com/ImJasonH/csvstruct)
+[![GitHub Actions Build Status](https://github.com/imjasonh/csvstruct/workflows/Build/badge.svg)](https://github.com/imjasonh/csvstruct/actions?query=workflow%3ABuild)
 
 This library provides methods to read and write CSV data into and from Go structs.
 
